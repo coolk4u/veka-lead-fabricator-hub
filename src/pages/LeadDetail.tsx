@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, User, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
+import CameraCapture from '@/components/CameraCapture';
 
 const LeadDetail = () => {
   const navigate = useNavigate();
@@ -16,6 +17,8 @@ const LeadDetail = () => {
   const [notes, setNotes] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
   const [leadStatus, setLeadStatus] = useState('in-progress');
+  const [showCamera, setShowCamera] = useState(false);
+  const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
 
   // Mock lead data with Hyderabad address
   const leadData = {
@@ -60,11 +63,8 @@ const LeadDetail = () => {
     });
   };
 
-  const handlePhotoCapture = () => {
-    toast({
-      title: "Photo capture",
-      description: "Camera functionality would be implemented here."
-    });
+  const handlePhotoCapture = (photoData: string) => {
+    setCapturedPhotos(prev => [...prev, photoData]);
   };
 
   const getStatusColor = (status: string) => {
@@ -211,13 +211,29 @@ const LeadDetail = () => {
           <CardHeader>
             <CardTitle>Capture Photos</CardTitle>
           </CardHeader>
-          <CardContent>
+          <CardContent className="space-y-4">
             <Button 
-              onClick={handlePhotoCapture}
+              onClick={() => setShowCamera(true)}
               className="w-full bg-blue-500 hover:bg-blue-600 rounded-xl h-12"
             >
               📷 Click Photo
             </Button>
+            
+            {capturedPhotos.length > 0 && (
+              <div className="space-y-2">
+                <p className="text-sm font-medium text-gray-700">Captured Photos:</p>
+                <div className="grid grid-cols-2 gap-2">
+                  {capturedPhotos.map((photo, index) => (
+                    <img
+                      key={index}
+                      src={photo}
+                      alt={`Captured photo ${index + 1}`}
+                      className="w-full h-32 object-cover rounded-lg border"
+                    />
+                  ))}
+                </div>
+              </div>
+            )}
           </CardContent>
         </Card>
 
@@ -261,6 +277,14 @@ const LeadDetail = () => {
           </CardContent>
         </Card>
       </div>
+
+      {/* Camera Component */}
+      {showCamera && (
+        <CameraCapture
+          onPhotoCapture={handlePhotoCapture}
+          onClose={() => setShowCamera(false)}
+        />
+      )}
     </div>
   );
 };

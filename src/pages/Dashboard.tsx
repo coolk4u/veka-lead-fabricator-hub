@@ -47,8 +47,11 @@ const Dashboard = () => {
           <p className="text-sm text-gray-500">Check our latest updates</p>
         </div>
 
-        {/* Main Feature Card */}
-        <Card className="bg-gradient-to-br from-purple-500 via-blue-500 to-green-500 text-white rounded-3xl shadow-xl overflow-hidden">
+        {/* Main Feature Card - Now Clickable */}
+        <Card 
+          className="bg-gradient-to-br from-purple-500 via-blue-500 to-green-500 text-white rounded-3xl shadow-xl overflow-hidden cursor-pointer hover:shadow-2xl transition-all"
+          onClick={() => navigate('/leads')}
+        >
           <CardContent className="p-6 relative">
             <div className="flex justify-between items-start mb-4">
               <div>
@@ -70,15 +73,15 @@ const Dashboard = () => {
             <div className="flex gap-4 text-sm">
               <div className="flex items-center gap-1">
                 <span className="w-2 h-2 bg-white rounded-full"></span>
-                <span>{dashboardStats.totalLeads}</span>
+                <span>{dashboardStats.totalLeads} Total</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-white/70 rounded-full"></span>
-                <span>{dashboardStats.inProgressLeads}</span>
+                <span className="w-2 h-2 bg-yellow-300 rounded-full"></span>
+                <span>{dashboardStats.inProgressLeads} Progress</span>
               </div>
               <div className="flex items-center gap-1">
-                <span className="w-2 h-2 bg-white/50 rounded-full"></span>
-                <span>{dashboardStats.convertedLeads}</span>
+                <span className="w-2 h-2 bg-green-300 rounded-full"></span>
+                <span>{dashboardStats.convertedLeads} Converted</span>
               </div>
             </div>
           </CardContent>
@@ -118,7 +121,10 @@ const Dashboard = () => {
           </div>
 
           <div className="space-y-3">
-            <div className="flex items-center gap-3 p-3 bg-white/70 rounded-2xl">
+            <div 
+              className="flex items-center gap-3 p-3 bg-white/70 rounded-2xl cursor-pointer hover:bg-white/90 transition-colors"
+              onClick={() => navigate('/lead/LD-001')}
+            >
               <div className="w-2 h-2 bg-green-500 rounded-full"></div>
               <div className="flex-1">
                 <p className="font-medium text-gray-800">Rajesh Reddy - Windows</p>
@@ -129,7 +135,10 @@ const Dashboard = () => {
               </div>
             </div>
 
-            <div className="flex items-center gap-3 p-3 bg-white/70 rounded-2xl">
+            <div 
+              className="flex items-center gap-3 p-3 bg-white/70 rounded-2xl cursor-pointer hover:bg-white/90 transition-colors"
+              onClick={() => navigate('/lead/LD-002')}
+            >
               <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
               <div className="flex-1">
                 <p className="font-medium text-gray-800">Priya Sharma - Doors</p>

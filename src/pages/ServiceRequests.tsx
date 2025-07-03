@@ -10,7 +10,7 @@ import { format } from 'date-fns';
 
 const ServiceRequests = () => {
   const navigate = useNavigate();
-  const [selectedDate, setSelectedDate] = useState<Date | undefined>(new Date());
+  const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [showCalendar, setShowCalendar] = useState(false);
 
   const serviceRequests = [
@@ -53,6 +53,26 @@ const ServiceRequests = () => {
       status: 'completed',
       date: '2024-01-14',
       assignedTime: '9:00 AM'
+    },
+    {
+      id: 'SR-005',
+      customerName: 'Lakshmi Devi',
+      address: '15-8-647, Malakpet, Hyderabad - 500036',
+      issue: 'Window alignment issue',
+      priority: 'high',
+      status: 'open',
+      date: '2024-01-17',
+      assignedTime: '3:00 PM'
+    },
+    {
+      id: 'SR-006',
+      customerName: 'Anil Reddy',
+      address: '23-4-89, Secunderabad, Hyderabad - 500003',
+      issue: 'Door closer adjustment',
+      priority: 'low',
+      status: 'in-progress',
+      date: '2024-01-16',
+      assignedTime: '1:00 PM'
     }
   ];
 
@@ -108,7 +128,7 @@ const ServiceRequests = () => {
             className="w-full justify-start rounded-xl h-12 bg-white/70"
           >
             <CalendarIcon className="w-4 h-4 mr-2" />
-            {selectedDate ? format(selectedDate, 'PPP') : 'Select date'}
+            {selectedDate ? format(selectedDate, 'PPP') : 'All requests - Select date to filter'}
           </Button>
           
           {showCalendar && (
@@ -122,6 +142,18 @@ const ServiceRequests = () => {
                 }}
                 className="rounded-md border-0"
               />
+              <div className="mt-2 flex gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm" 
+                  onClick={() => {
+                    setSelectedDate(undefined);
+                    setShowCalendar(false);
+                  }}
+                >
+                  Clear Filter
+                </Button>
+              </div>
             </Card>
           )}
         </div>
