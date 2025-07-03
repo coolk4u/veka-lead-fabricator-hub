@@ -6,7 +6,7 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft } from 'lucide-react';
+import { ChevronLeft, User, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 
 const LeadDetail = () => {
@@ -17,17 +17,23 @@ const LeadDetail = () => {
   const [selectedProduct, setSelectedProduct] = useState('');
   const [leadStatus, setLeadStatus] = useState('in-progress');
 
-  // Mock lead data
+  // Mock lead data with Hyderabad address
   const leadData = {
     id: leadId,
-    customerName: 'Echo Canyon',
-    address: '5197 Enclave',
-    phone: '+1 (555) 123-4567',
-    email: 'contact@echocanyon.com',
+    customerName: 'Priya Sharma',
+    address: '205, Jubilee Hills, Road No. 36, Hyderabad - 500033',
+    phone: '+91 98765 43210',
+    email: 'priya.sharma@gmail.com',
     date: '14 Oct 2024, 09:12',
     status: 'in-progress',
     priority: 'medium',
-    existingNotes: 'Customer interested in premium windows for new construction project. Requires quote for 12 windows.'
+    existingNotes: 'Customer interested in premium UPVC windows for 3BHK apartment. Requires quote for 8 windows and 2 sliding doors.',
+    salesPerson: {
+      name: 'Arun Kumar',
+      phone: '+91 87654 32109',
+      email: 'arun.kumar@veka.com',
+      territory: 'Hyderabad Central'
+    }
   };
 
   const vekaProducts = [
@@ -40,7 +46,6 @@ const LeadDetail = () => {
   ];
 
   const handleSaveNotes = () => {
-    // In a real app, this would save to a database
     toast({
       title: "Notes saved successfully",
       description: "Lead information has been updated."
@@ -55,11 +60,18 @@ const LeadDetail = () => {
     });
   };
 
+  const handlePhotoCapture = () => {
+    toast({
+      title: "Photo capture",
+      description: "Camera functionality would be implemented here."
+    });
+  };
+
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-yellow-100 text-yellow-800';
-      case 'in-progress': return 'bg-blue-100 text-blue-800';
-      case 'completed': return 'bg-green-100 text-green-800';
+      case 'active': return 'bg-red-500 text-white';
+      case 'in-progress': return 'bg-blue-500 text-white';
+      case 'completed': return 'bg-green-500 text-white';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -76,60 +88,87 @@ const LeadDetail = () => {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
-      <div className="bg-yellow-500 text-white p-4">
+      <div className="bg-white shadow-sm p-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
-            size="sm"
+            size="icon"
             onClick={() => navigate('/leads')}
-            className="text-white hover:bg-yellow-600"
+            className="rounded-full"
           >
-            <ArrowLeft className="w-4 h-4" />
+            <ChevronLeft className="w-5 h-5" />
           </Button>
           <div>
-            <h1 className="text-xl font-bold">Ticket</h1>
-            <p className="text-yellow-100">Last Sync: 2 minutes ago</p>
+            <h1 className="text-xl font-semibold text-gray-800">Lead Details</h1>
+            <p className="text-sm text-gray-500">Last Sync: 2 minutes ago</p>
           </div>
+        </div>
+        <div className="flex gap-3">
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <User className="w-5 h-5" />
+          </Button>
+          <Button variant="ghost" size="icon" className="rounded-full">
+            <Settings className="w-5 h-5" />
+          </Button>
         </div>
       </div>
 
       <div className="p-4 space-y-6">
         {/* Lead Information */}
-        <Card>
+        <Card className="rounded-2xl shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${getPriorityColor(leadData.priority)}`}></div>
                 {leadData.id}
               </CardTitle>
-              <Badge className={getStatusColor(leadStatus)}>
-                {leadStatus.replace('-', ' ')}
+              <Badge className={`${getStatusColor(leadStatus)} rounded-full px-3 py-1`}>
+                {leadStatus === 'active' ? 'Unconfirmed' : 
+                 leadStatus === 'in-progress' ? 'In Progress' : 
+                 'Completed'}
               </Badge>
             </div>
           </CardHeader>
           <CardContent className="space-y-4">
             <div>
-              <h3 className="font-semibold text-lg">{leadData.customerName}</h3>
-              <p className="text-gray-600">{leadData.address}</p>
-              <p className="text-gray-600">{leadData.phone}</p>
-              <p className="text-gray-600">{leadData.email}</p>
-              <p className="text-sm text-gray-500">{leadData.date}</p>
+              <h3 className="font-semibold text-lg mb-2">{leadData.customerName}</h3>
+              <div className="space-y-1 text-gray-600">
+                <p>{leadData.address}</p>
+                <p>{leadData.phone}</p>
+                <p>{leadData.email}</p>
+                <p className="text-sm text-gray-500">{leadData.date}</p>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Sales Person Information */}
+        <Card className="rounded-2xl shadow-lg">
+          <CardHeader>
+            <CardTitle>Sales Person Details</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <div className="space-y-2">
+              <h4 className="font-semibold">{leadData.salesPerson.name}</h4>
+              <p className="text-gray-600">📞 {leadData.salesPerson.phone}</p>
+              <p className="text-gray-600">✉️ {leadData.salesPerson.email}</p>
+              <p className="text-gray-600">📍 {leadData.salesPerson.territory}</p>
             </div>
           </CardContent>
         </Card>
 
         {/* Status Update */}
-        <Card>
+        <Card className="rounded-2xl shadow-lg">
           <CardHeader>
             <CardTitle>Update Status</CardTitle>
           </CardHeader>
           <CardContent>
             <Select value={leadStatus} onValueChange={handleStatusChange}>
-              <SelectTrigger>
+              <SelectTrigger className="rounded-xl h-12">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="active">Active</SelectItem>
+                <SelectItem value="active">Unconfirmed</SelectItem>
                 <SelectItem value="in-progress">In Progress</SelectItem>
                 <SelectItem value="completed">Completed</SelectItem>
               </SelectContent>
@@ -138,7 +177,7 @@ const LeadDetail = () => {
         </Card>
 
         {/* Product Requirements */}
-        <Card>
+        <Card className="rounded-2xl shadow-lg">
           <CardHeader>
             <CardTitle>Product Requirements</CardTitle>
           </CardHeader>
@@ -146,7 +185,7 @@ const LeadDetail = () => {
             <div>
               <Label htmlFor="product-select">Select Veka Product</Label>
               <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                <SelectTrigger id="product-select">
+                <SelectTrigger id="product-select" className="rounded-xl h-12">
                   <SelectValue placeholder="Choose a product" />
                 </SelectTrigger>
                 <SelectContent>
@@ -160,27 +199,42 @@ const LeadDetail = () => {
             </div>
             
             {selectedProduct && (
-              <div className="p-3 bg-yellow-50 rounded-lg">
-                <p className="text-sm font-medium text-yellow-800">Selected: {selectedProduct}</p>
+              <div className="p-3 bg-blue-50 rounded-xl">
+                <p className="text-sm font-medium text-blue-800">Selected: {selectedProduct}</p>
               </div>
             )}
           </CardContent>
         </Card>
 
+        {/* Photo Capture */}
+        <Card className="rounded-2xl shadow-lg">
+          <CardHeader>
+            <CardTitle>Capture Photos</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <Button 
+              onClick={handlePhotoCapture}
+              className="w-full bg-blue-500 hover:bg-blue-600 rounded-xl h-12"
+            >
+              📷 Click Photo
+            </Button>
+          </CardContent>
+        </Card>
+
         {/* Existing Notes */}
-        <Card>
+        <Card className="rounded-2xl shadow-lg">
           <CardHeader>
             <CardTitle>Existing Notes</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="bg-gray-50 p-3 rounded-lg">
+            <div className="bg-gray-50 p-4 rounded-xl">
               <p className="text-sm text-gray-700">{leadData.existingNotes}</p>
             </div>
           </CardContent>
         </Card>
 
         {/* Add Notes */}
-        <Card>
+        <Card className="rounded-2xl shadow-lg">
           <CardHeader>
             <CardTitle>Add Notes</CardTitle>
           </CardHeader>
@@ -193,12 +247,13 @@ const LeadDetail = () => {
                 value={notes}
                 onChange={(e) => setNotes(e.target.value)}
                 rows={4}
+                className="rounded-xl"
               />
             </div>
             
             <Button 
               onClick={handleSaveNotes}
-              className="w-full bg-yellow-500 hover:bg-yellow-600"
+              className="w-full bg-blue-500 hover:bg-blue-600 rounded-xl h-12"
               disabled={!notes.trim()}
             >
               Save Notes
