@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import VekaCarousel from '@/components/VekaCarousel';
-import { User, Settings } from 'lucide-react';
+import { User, Settings, Bell } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -14,7 +14,8 @@ const Dashboard = () => {
     totalLeads: 45,
     openLeads: 13,
     inProgressLeads: 2,
-    convertedLeads: 18
+    convertedLeads: 18,
+    serviceRequests: 8
   };
 
   const monthlyData = [
@@ -27,120 +28,184 @@ const Dashboard = () => {
   ];
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-50 to-green-100 pb-20">
       {/* Header */}
-      <div className="bg-white shadow-sm p-4 flex justify-between items-center">
-        <div>
-          <h1 className="text-xl font-semibold text-gray-800">Rajesh Kumar</h1>
-          <p className="text-sm text-gray-500">Fabricator ID: 8301</p>
-        </div>
-        <div className="flex gap-3">
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <User className="w-5 h-5" />
-          </Button>
-          <Button variant="ghost" size="icon" className="rounded-full">
-            <Settings className="w-5 h-5" />
-          </Button>
+      <div className="bg-white/80 backdrop-blur-sm shadow-sm p-4 flex justify-between items-center">
+        <div className="flex items-center gap-3">
+          <Bell className="w-6 h-6 text-gray-600" />
+          <div className="w-8 h-8 bg-gradient-to-r from-orange-400 to-pink-500 rounded-full flex items-center justify-center">
+            <span className="text-white text-sm font-bold">R</span>
+          </div>
         </div>
       </div>
 
       <div className="p-4 space-y-6">
-        {/* Dashboard Stats */}
-        <div className="grid grid-cols-2 gap-4">
-          <Card className="bg-red-500 text-white rounded-2xl shadow-lg">
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold mb-1">{dashboardStats.openLeads}</div>
-              <div className="text-red-100 text-sm">Unconfirmed</div>
-            </CardContent>
-          </Card>
-          
-          <Card 
-            className="bg-blue-500 text-white rounded-2xl shadow-lg cursor-pointer hover:shadow-xl transition-shadow"
-            onClick={() => navigate('/leads?status=in-progress')}
-          >
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold mb-1">{dashboardStats.inProgressLeads}</div>
-              <div className="text-blue-100 text-sm">In Progress</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-gray-600 text-white rounded-2xl shadow-lg">
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold mb-1">4</div>
-              <div className="text-gray-300 text-sm">Unclosed</div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-green-500 text-white rounded-2xl shadow-lg">
-            <CardContent className="p-6 text-center">
-              <div className="text-3xl font-bold mb-1">{dashboardStats.convertedLeads}</div>
-              <div className="text-green-100 text-sm">Completed</div>
-            </CardContent>
-          </Card>
+        {/* Welcome Section */}
+        <div>
+          <p className="text-gray-600 text-sm">Welcome back,</p>
+          <h1 className="text-2xl font-bold text-gray-800 mb-1">Rajesh Kumar</h1>
+          <p className="text-sm text-gray-500">Check our latest updates</p>
         </div>
 
-        {/* Service Work Cards */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Card className="bg-blue-600 text-white rounded-2xl shadow-lg">
-            <CardContent className="p-6">
-              <div className="text-sm text-blue-200 mb-2">TODAY</div>
-              <div className="text-lg font-semibold mb-4">Service Work</div>
-              <div className="space-y-1 text-sm">
-                <div>Rajesh Kumar</div>
-                <div className="text-blue-200">Banjara Hills, Hyderabad</div>
-                <div className="text-blue-200">Door - Window, 500034</div>
+        {/* Main Feature Card */}
+        <Card className="bg-gradient-to-br from-purple-500 via-blue-500 to-green-500 text-white rounded-3xl shadow-xl overflow-hidden">
+          <CardContent className="p-6 relative">
+            <div className="flex justify-between items-start mb-4">
+              <div>
+                <h3 className="text-lg font-semibold mb-1">Lead Management</h3>
+                <p className="text-white/90 text-sm">Active leads tracking</p>
               </div>
-            </CardContent>
-          </Card>
-          
-          <Card className="bg-blue-600 text-white rounded-2xl shadow-lg">
-            <CardContent className="p-6">
-              <div className="text-sm text-blue-200 mb-2">TODAY</div>
-              <div className="text-lg font-semibold mb-4">Service Work</div>
-              <div className="space-y-1 text-sm">
-                <div>Priya Sharma</div>
-                <div className="text-blue-200">Jubilee Hills, Hyderabad</div>
-                <div className="text-blue-200">Conservatory, 500033</div>
+              <div className="flex -space-x-2">
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-xs">👤</span>
+                </div>
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-xs">👤</span>
+                </div>
+                <div className="w-8 h-8 bg-white/20 rounded-full flex items-center justify-center">
+                  <span className="text-xs">+2</span>
+                </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+            <div className="flex gap-4 text-sm">
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-white rounded-full"></span>
+                <span>{dashboardStats.totalLeads}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-white/70 rounded-full"></span>
+                <span>{dashboardStats.inProgressLeads}</span>
+              </div>
+              <div className="flex items-center gap-1">
+                <span className="w-2 h-2 bg-white/50 rounded-full"></span>
+                <span>{dashboardStats.convertedLeads}</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Service Requests Widget */}
+        <Card 
+          className="bg-gradient-to-br from-orange-400 to-pink-500 text-white rounded-3xl shadow-xl cursor-pointer hover:shadow-2xl transition-all"
+          onClick={() => navigate('/service-requests')}
+        >
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center mb-2">
+              <h3 className="text-lg font-semibold">Open Service Requests</h3>
+              <div className="w-10 h-10 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-2xl font-bold">{dashboardStats.serviceRequests}</span>
+              </div>
+            </div>
+            <p className="text-white/90 text-sm">Assigned to your team</p>
+          </CardContent>
+        </Card>
+
+        {/* Recent Tasks Section */}
+        <div>
+          <div className="flex items-center justify-between mb-4">
+            <div>
+              <h2 className="text-lg font-semibold text-gray-800">Recent leads</h2>
+              <p className="text-sm text-gray-500">Assigned to your team</p>
+            </div>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="w-8 h-8 bg-blue-500 text-white rounded-full hover:bg-blue-600"
+              onClick={() => navigate('/leads')}
+            >
+              →
+            </Button>
+          </div>
+
+          <div className="space-y-3">
+            <div className="flex items-center gap-3 p-3 bg-white/70 rounded-2xl">
+              <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-800">Rajesh Reddy - Windows</p>
+                <p className="text-xs text-gray-500">Banjara Hills</p>
+              </div>
+              <div className="w-6 h-6 bg-green-100 rounded-full flex items-center justify-center">
+                <span className="text-green-600 text-xs">✓</span>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-3 p-3 bg-white/70 rounded-2xl">
+              <div className="w-2 h-2 bg-yellow-500 rounded-full"></div>
+              <div className="flex-1">
+                <p className="font-medium text-gray-800">Priya Sharma - Doors</p>
+                <p className="text-xs text-gray-500">Jubilee Hills</p>
+              </div>
+              <div className="w-6 h-6 bg-red-100 rounded-full flex items-center justify-center">
+                <span className="text-red-600 text-xs">⚠</span>
+              </div>
+            </div>
+          </div>
         </div>
 
         {/* Veka Carousel */}
         <VekaCarousel />
 
         {/* Monthly Leads Chart */}
-        <Card className="rounded-2xl shadow-lg">
+        <Card className="rounded-3xl shadow-lg bg-white/80 backdrop-blur-sm">
           <CardHeader>
             <CardTitle className="text-gray-800">Monthly Leads Attended</CardTitle>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
+            <ResponsiveContainer width="100%" height={200}>
               <BarChart data={monthlyData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
+                <CartesianGrid strokeDasharray="3 3" stroke="#e0e4e7" />
+                <XAxis dataKey="month" axisLine={false} tickLine={false} />
+                <YAxis axisLine={false} tickLine={false} />
                 <Tooltip />
-                <Bar dataKey="leads" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                <Bar dataKey="leads" fill="url(#gradient)" radius={[8, 8, 0, 0]} />
+                <defs>
+                  <linearGradient id="gradient" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#8b5cf6" />
+                    <stop offset="100%" stopColor="#06b6d4" />
+                  </linearGradient>
+                </defs>
               </BarChart>
             </ResponsiveContainer>
           </CardContent>
         </Card>
+      </div>
 
-        {/* Quick Actions */}
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          <Button 
-            onClick={() => navigate('/leads')}
-            className="bg-blue-500 hover:bg-blue-600 h-16 text-lg rounded-2xl shadow-lg"
-          >
-            View All Leads
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-200">
+        <div className="flex justify-around py-2">
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/dashboard')}>
+            <div className="w-6 h-6 mb-1 bg-blue-500 rounded-lg flex items-center justify-center">
+              <span className="text-white text-xs">🏠</span>
+            </div>
+            <span className="text-xs text-blue-500 font-medium">Home</span>
           </Button>
-          <Button 
-            onClick={() => navigate('/leads?status=in-progress')}
-            variant="outline"
-            className="border-blue-500 text-blue-600 hover:bg-blue-50 h-16 text-lg rounded-2xl shadow-lg"
-          >
-            In Progress Leads
+          
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/leads')}>
+            <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-gray-600 text-xs">📋</span>
+            </div>
+            <span className="text-xs text-gray-500">Leads</span>
+          </Button>
+          
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/service-requests')}>
+            <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-gray-600 text-xs">🔧</span>
+            </div>
+            <span className="text-xs text-gray-500">Service</span>
+          </Button>
+          
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3">
+            <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-gray-600 text-xs">📊</span>
+            </div>
+            <span className="text-xs text-gray-500">Reports</span>
+          </Button>
+          
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3">
+            <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-gray-600 text-xs">☰</span>
+            </div>
+            <span className="text-xs text-gray-500">Menu</span>
           </Button>
         </div>
       </div>

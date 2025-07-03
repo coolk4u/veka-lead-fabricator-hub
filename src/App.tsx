@@ -8,6 +8,8 @@ import Index from "./pages/Index";
 import Dashboard from "./pages/Dashboard";
 import Leads from "./pages/Leads";
 import LeadDetail from "./pages/LeadDetail";
+import ServiceRequests from "./pages/ServiceRequests";
+import ServiceRequestDetail from "./pages/ServiceRequestDetail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -47,6 +49,22 @@ const App = () => (
             element={
               <ProtectedRoute>
                 <LeadDetail />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/service-requests" 
+            element={
+              <ProtectedRoute>
+                <ServiceRequests />
+              </ProtectedRoute>
+            } 
+          />
+          <Route 
+            path="/service-request/:requestId" 
+            element={
+              <ProtectedRoute>
+                <ServiceRequestDetail />
               </ProtectedRoute>
             } 
           />

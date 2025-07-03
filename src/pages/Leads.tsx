@@ -92,9 +92,9 @@ const Leads = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-50 to-green-100 pb-20">
       {/* Header */}
-      <div className="bg-white shadow-sm p-4 flex justify-between items-center">
+      <div className="bg-white/80 backdrop-blur-sm shadow-sm p-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
           <Button 
             variant="ghost" 
@@ -126,34 +126,34 @@ const Leads = () => {
             placeholder="Search leads..."
             value={searchTerm}
             onChange={(e) => setSearchTerm(e.target.value)}
-            className="mb-4 rounded-xl h-12"
+            className="mb-4 rounded-xl h-12 bg-white/70 backdrop-blur-sm"
           />
           
           <div className="flex gap-2 flex-wrap">
             <Badge 
               variant={!statusFilter ? "default" : "secondary"} 
-              className="cursor-pointer px-4 py-2 rounded-full"
+              className="cursor-pointer px-4 py-2 rounded-full bg-white/70 backdrop-blur-sm"
               onClick={() => handleFilterClick(null)}
             >
               All
             </Badge>
             <Badge 
               variant={statusFilter === 'active' ? "default" : "secondary"} 
-              className="cursor-pointer px-4 py-2 rounded-full"
+              className="cursor-pointer px-4 py-2 rounded-full bg-white/70 backdrop-blur-sm"
               onClick={() => handleFilterClick('active')}
             >
               Unconfirmed
             </Badge>
             <Badge 
               variant={statusFilter === 'in-progress' ? "default" : "secondary"} 
-              className="cursor-pointer px-4 py-2 rounded-full"
+              className="cursor-pointer px-4 py-2 rounded-full bg-white/70 backdrop-blur-sm"
               onClick={() => handleFilterClick('in-progress')}
             >
               In Progress
             </Badge>
             <Badge 
               variant={statusFilter === 'completed' ? "default" : "secondary"} 
-              className="cursor-pointer px-4 py-2 rounded-full"
+              className="cursor-pointer px-4 py-2 rounded-full bg-white/70 backdrop-blur-sm"
               onClick={() => handleFilterClick('completed')}
             >
               Completed
@@ -166,7 +166,7 @@ const Leads = () => {
           {filteredLeads.map((lead) => (
             <Card 
               key={lead.id} 
-              className="cursor-pointer hover:shadow-lg transition-shadow rounded-2xl"
+              className="cursor-pointer hover:shadow-lg transition-shadow rounded-2xl bg-white/70 backdrop-blur-sm"
               onClick={() => navigate(`/lead/${lead.id}`)}
             >
               <CardContent className="p-6">
@@ -201,6 +201,46 @@ const Leads = () => {
             <p className="text-gray-500">No leads found matching your criteria.</p>
           </div>
         )}
+      </div>
+
+      {/* Bottom Navigation */}
+      <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-200">
+        <div className="flex justify-around py-2">
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/dashboard')}>
+            <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-gray-600 text-xs">🏠</span>
+            </div>
+            <span className="text-xs text-gray-500">Home</span>
+          </Button>
+          
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/leads')}>
+            <div className="w-6 h-6 mb-1 bg-blue-500 rounded-lg flex items-center justify-center">
+              <span className="text-white text-xs">📋</span>
+            </div>
+            <span className="text-xs text-blue-500 font-medium">Leads</span>
+          </Button>
+          
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/service-requests')}>
+            <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-gray-600 text-xs">🔧</span>
+            </div>
+            <span className="text-xs text-gray-500">Service</span>
+          </Button>
+          
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3">
+            <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-gray-600 text-xs">📊</span>
+            </div>
+            <span className="text-xs text-gray-500">Reports</span>
+          </Button>
+          
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3">
+            <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
+              <span className="text-gray-600 text-xs">☰</span>
+            </div>
+            <span className="text-xs text-gray-500">Menu</span>
+          </Button>
+        </div>
       </div>
     </div>
   );
