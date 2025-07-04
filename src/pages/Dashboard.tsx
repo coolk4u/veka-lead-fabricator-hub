@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { useNavigate } from 'react-router-dom';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
 import VekaCarousel from '@/components/VekaCarousel';
-import { User, Settings, Bell } from 'lucide-react';
+import { User, Settings, Bell, Gift } from 'lucide-react';
 
 const Dashboard = () => {
   const navigate = useNavigate();
@@ -175,6 +175,25 @@ const Dashboard = () => {
                 </defs>
               </BarChart>
             </ResponsiveContainer>
+          </CardContent>
+        </Card>
+
+        {/* Rewards Tile */}
+        <Card className="bg-gradient-to-br from-emerald-400 to-teal-500 text-white rounded-3xl shadow-xl">
+          <CardContent className="p-6">
+            <div className="flex justify-between items-center">
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <Gift className="w-6 h-6" />
+                  <h3 className="text-lg font-semibold">Total Rewards Earned</h3>
+                </div>
+                <div className="text-3xl font-bold mb-1">₹2,000</div>
+                <p className="text-white/90 text-sm">in last one month</p>
+              </div>
+              <div className="w-16 h-16 bg-white/20 rounded-full flex items-center justify-center">
+                <span className="text-3xl">🎁</span>
+              </div>
+            </div>
           </CardContent>
         </Card>
       </div>
