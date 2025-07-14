@@ -1,65 +1,215 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import { useNavigate, useParams } from 'react-router-dom';
+import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { useNavigate, useParams } from 'react-router-dom';
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
+} from '@/components/ui/select';
 import { ChevronLeft, User, Settings } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
 import CameraCapture from '@/components/CameraCapture';
+
+interface SalesPerson {
+  name: string;
+  phone: string;
+  email: string;
+  territory: string;
+}
+
+interface Product {
+  Id: string;
+  Name: string;
+}
+
+interface LeadData {
+  id: string;
+  opportunityName: string;
+  customerName: string;
+  address: string;
+  phone: string;
+  email: string;
+  date: string;
+  status: string;
+  priority: 'high' | 'medium' | 'low';
+  existingNotes: string;
+  salesPerson: SalesPerson;
+  products: Product[];
+}
 
 const LeadDetail = () => {
   const navigate = useNavigate();
   const { leadId } = useParams();
   const { toast } = useToast();
+
+  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
   const [leadStatus, setLeadStatus] = useState('in-progress');
   const [showCamera, setShowCamera] = useState(false);
   const [capturedPhotos, setCapturedPhotos] = useState<string[]>([]);
+  const [leadData, setLeadData] = useState<LeadData | null>(null);
+  const [productLength, setProductLength] = useState('');
+  const [productBreadth, setProductBreadth] = useState('');
+  const [productHeight, setProductHeight] = useState('');
+  const [productQuantity, setProductQuantity] = useState('');
 
-  // Mock lead data with Hyderabad address
-  const leadData = {
-    id: leadId,
-    customerName: 'Priya Sharma',
-    address: '205, Jubilee Hills, Road No. 36, Hyderabad - 500033',
-    phone: '+91 98765 43210',
-    email: 'priya.sharma@gmail.com',
-    date: '14 Oct 2024, 09:12',
-    status: 'in-progress',
-    priority: 'medium',
-    existingNotes: 'Customer interested in premium UPVC windows for 3BHK apartment. Requires quote for 8 windows and 2 sliding doors.',
-    salesPerson: {
-      name: 'Arun Kumar',
-      phone: '+91 87654 32109',
-      email: 'arun.kumar@veka.com',
-      territory: 'Hyderabad Central'
+  // Fetch Salesforce access token
+  useEffect(() => {
+    const fetchAccessToken = async () => {
+      const tokenUrl = 'https://gtmdataai-dev-ed.develop.my.salesforce.com/services/oauth2/token';
+      const clientId = '3MVG9OGq41FnYVsFObrvP_I4DU.xo6cQ3wP75Sf7rxOPMtz0Ofj5RIDyM83GlmVkGFbs_0aLp3hlj51c8GQsq';
+      const clientSecret = 'A9699851D548F0C076BB6EB07C35FEE1822752CF5B2CC7F0C002DC4ED9466492';
+
+      const params = new URLSearchParams();
+      params.append('grant_type', 'client_credentials');
+      params.append('client_id', clientId);
+      params.append('client_secret', clientSecret);
+
+      try {
+        const response = await axios.post(tokenUrl, params, {
+          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        });
+        setAccessToken(response.data.access_token);
+        console.log('🔐 Access Token Fetched:', response.data.access_token);
+      } catch (error) {
+        console.error('❌ Failed to fetch access token:', error);
+      }
+    };
+
+    fetchAccessToken();
+  }, []);
+
+  // Fetch lead data using access token
+  useEffect(() => {
+    const fetchLead = async () => {
+      if (!accessToken || !leadId) return;
+
+      try {
+        const response = await axios.get(
+          `https://gtmdataai-dev-ed.develop.my.salesforce.com/services/data/v62.0/query?q=SELECT+Id,Name,StageName,CreatedDate,Description,Account.BillingStreet,Account.BillingCity,Account.BillingState,Account.BillingPostalCode,(SELECT+Contact.FirstName,Contact.LastName,Contact.Email,Contact.Phone+FROM+OpportunityContactRoles),(SELECT+Id,PricebookEntry.Product2.Name+FROM+OpportunityLineItems)+FROM+Opportunity+WHERE+Id='${leadId}'`,
+          {
+            headers: {
+              Authorization: `Bearer ${accessToken}`,
+              Accept: '*/*',
+              'Content-Type': 'application/json',
+            },
+          }
+        );
+
+        const opp = response.data.records[0];
+        const contact = opp.OpportunityContactRoles?.records?.[0]?.Contact ?? {};
+        const customerName = `${contact.FirstName ?? ''} ${contact.LastName ?? ''}`.trim();
+        const address = `${opp.Account?.BillingStreet ?? ''}, ${opp.Account?.BillingCity ?? ''}, ${opp.Account?.BillingState ?? ''} - ${opp.Account?.BillingPostalCode ?? ''}`;
+        const status = opp.StageName ?? 'unknown';
+        const date = new Date(opp.CreatedDate).toLocaleString('en-IN', {
+          dateStyle: 'medium',
+          timeStyle: 'short'
+        });
+
+        let priority: 'high' | 'medium' | 'low' = 'low';
+        if (status.toLowerCase().includes('closed')) priority = 'high';
+        else if (status.toLowerCase().includes('field') || status.toLowerCase().includes('in')) priority = 'medium';
+
+        type OpportunityLineItem = {
+          Id: string;
+          PricebookEntry?: {
+            Product2?: {
+              Name?: string;
+            };
+          };
+        };
+
+        const products: Product[] =
+          opp.OpportunityLineItems?.records?.map((item: OpportunityLineItem) => ({
+            Id: item.Id,
+            Name: item.PricebookEntry?.Product2?.Name ?? 'Unknown Product'
+          })) ?? [];
+
+        const salesPerson: SalesPerson = {
+          name: 'Sai Kiran',
+          phone: '+91 87654 32109',
+          email: 'sai.kiran@veka.com',
+          territory: 'Hyderabad Central'
+        };
+
+        setLeadData({
+          id: opp.Id,
+          opportunityName: opp.Name,
+          customerName,
+          address,
+          phone: contact.Phone ?? 'N/A',
+          email: contact.Email ?? 'N/A',
+          date,
+          status,
+          priority,
+          existingNotes: opp.Description ?? 'Customer interested in premium UPVC windows...',
+          salesPerson,
+          products
+        });
+
+        setLeadStatus(status);
+      } catch (error) {
+        console.error('Error fetching lead data:', error);
+      }
+    };
+
+    fetchLead();
+  }, [accessToken, leadId]);
+
+  const handleSaveNotes = async () => {
+    if (!accessToken || !leadData?.id) return;
+
+    try {
+      await axios.post(
+        'https://gtmdataai-dev-ed.develop.my.salesforce.com/services/apexrest/updateVisitNotes',
+        {
+          type: 'opportunity',
+          opportunityId: leadData.id,
+          notes,
+          stageName: "Assign to Fabricator",
+          length: productLength,
+          breadth: productBreadth,
+          height: productHeight,
+          quantity: productQuantity
+        },
+        {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+            Accept: '*/*'
+          }
+        }
+      );
+
+      toast({
+        title: 'Opportunity is updated',
+        description: 'Opportunity updated in Salesforce.'
+      });
+      navigate('/leads');
+    } catch (error) {
+      console.error('Failed to update opportunity:', error);
+      toast({
+        title: 'Error',
+        description: 'Could not update opportunity.'
+      });
     }
   };
 
-  const vekaProducts = [
-    'VEKA uPVC Windows',
-    'VEKA Sliding Doors',
-    'VEKA French Doors',
-    'VEKA Bi-fold Doors',
-    'VEKA Conservatory',
-    'VEKA Composite Doors'
-  ];
 
-  const handleSaveNotes = () => {
-    toast({
-      title: "Notes saved successfully",
-      description: "Lead information has been updated."
-    });
-  };
 
   const handleStatusChange = (newStatus: string) => {
     setLeadStatus(newStatus);
     toast({
-      title: "Status updated",
-      description: `Lead status changed to ${newStatus.replace('-', ' ')}`
+      title: 'Status updated',
+      description: `Lead status changed to ${newStatus}`
     });
   };
 
@@ -69,9 +219,16 @@ const LeadDetail = () => {
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'active': return 'bg-red-500 text-white';
-      case 'in-progress': return 'bg-blue-500 text-white';
-      case 'completed': return 'bg-green-500 text-white';
+      case 'Prospecting': return 'bg-yellow-100 text-yellow-800';
+      case 'Qualification': return 'bg-purple-100 text-purple-800';
+      case 'Field Visit - Sales Rep': return 'bg-blue-100 text-blue-800';
+      case 'Needs Analysis': return 'bg-indigo-100 text-indigo-800';
+      case 'Assigned to Fabricator': return 'bg-teal-100 text-teal-800';
+      case 'Field Visit - Fabricator': return 'bg-cyan-100 text-cyan-800';
+      case 'Proposal/Price Quote': return 'bg-emerald-100 text-emerald-800';
+      case 'Negotiation/Review': return 'bg-orange-100 text-orange-800';
+      case 'Closed Won': return 'bg-green-500 text-white';
+      case 'Closed Lost': return 'bg-red-500 text-white';
       default: return 'bg-gray-100 text-gray-800';
     }
   };
@@ -85,22 +242,18 @@ const LeadDetail = () => {
     }
   };
 
+  if (!leadData) return <div className="p-4">Loading lead details...</div>;
+
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
       <div className="bg-white shadow-sm p-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
-            size="icon"
-            onClick={() => navigate('/leads')}
-            className="rounded-full"
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate('/leads')} className="rounded-full">
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div>
             <h1 className="text-xl font-semibold text-gray-800">Lead Details</h1>
-            <p className="text-sm text-gray-500">Last Sync: 2 minutes ago</p>
+            <p className="text-sm text-gray-500">Last Sync: Just now</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -114,128 +267,127 @@ const LeadDetail = () => {
       </div>
 
       <div className="p-4 space-y-6">
-        {/* Lead Information */}
+        {/* Lead Info */}
         <Card className="rounded-2xl shadow-lg">
           <CardHeader>
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <div className={`w-3 h-3 rounded-full ${getPriorityColor(leadData.priority)}`}></div>
-                {leadData.id}
+                {leadData.opportunityName}
               </CardTitle>
               <Badge className={`${getStatusColor(leadStatus)} rounded-full px-3 py-1`}>
-                {leadStatus === 'active' ? 'Unconfirmed' : 
-                 leadStatus === 'in-progress' ? 'In Progress' : 
-                 'Completed'}
+                {leadStatus}
               </Badge>
             </div>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <h3 className="font-semibold text-lg mb-2">{leadData.customerName}</h3>
-              <div className="space-y-1 text-gray-600">
-                <p>{leadData.address}</p>
-                <p>{leadData.phone}</p>
-                <p>{leadData.email}</p>
-                <p className="text-sm text-gray-500">{leadData.date}</p>
-              </div>
-            </div>
+          <CardContent className="space-y-2 text-gray-700">
+            <h3 className="font-semibold text-lg">{leadData.customerName}</h3>
+            <p>{leadData.address}</p>
+            <p>{leadData.phone}</p>
+            <p>{leadData.email}</p>
+            <p className="text-sm text-gray-500">{leadData.date}</p>
           </CardContent>
         </Card>
 
-        {/* Sales Person Information */}
+        {/* Sales Person Info */}
         <Card className="rounded-2xl shadow-lg">
           <CardHeader>
             <CardTitle>Sales Person Details</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="space-y-2">
-              <h4 className="font-semibold">{leadData.salesPerson.name}</h4>
-              <p className="text-gray-600">📞 {leadData.salesPerson.phone}</p>
-              <p className="text-gray-600">✉️ {leadData.salesPerson.email}</p>
-              <p className="text-gray-600">📍 {leadData.salesPerson.territory}</p>
-            </div>
+            <p className="font-semibold">{leadData.salesPerson.name}</p>
+            <p>📞 {leadData.salesPerson.phone}</p>
+            <p>✉️ {leadData.salesPerson.email}</p>
+            <p>📍 {leadData.salesPerson.territory}</p>
           </CardContent>
         </Card>
 
-        {/* Status Update */}
+        {/* Update Status */}
         <Card className="rounded-2xl shadow-lg">
           <CardHeader>
             <CardTitle>Update Status</CardTitle>
           </CardHeader>
           <CardContent>
             <Select value={leadStatus} onValueChange={handleStatusChange}>
-              <SelectTrigger className="rounded-xl h-12">
+              <SelectTrigger className="rounded-xl h-12 bg-white text-black">
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="active">Unconfirmed</SelectItem>
-                <SelectItem value="in-progress">In Progress</SelectItem>
-                <SelectItem value="completed">Completed</SelectItem>
+                {[
+                  'Prospecting',
+                  'Qualification',
+                  'Field Visit - Sales Rep',
+                  'Needs Analysis',
+                  'Assigned to Fabricator',
+                  'Field Visit - Fabricator',
+                  'Proposal/Price Quote',
+                  'Negotiation/Review',
+                  'Closed Won',
+                  'Closed Lost'
+                ].map(status => (
+                  <SelectItem key={status} value={status}>
+                    {status}
+                  </SelectItem>
+                ))}
               </SelectContent>
             </Select>
           </CardContent>
         </Card>
 
-        {/* Product Requirements */}
-        <Card className="rounded-2xl shadow-lg">
-          <CardHeader>
-            <CardTitle>Product Requirements</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="product-select">Select Veka Product</Label>
-              <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-                <SelectTrigger id="product-select" className="rounded-xl h-12">
-                  <SelectValue placeholder="Choose a product" />
-                </SelectTrigger>
-                <SelectContent>
-                  {vekaProducts.map((product) => (
-                    <SelectItem key={product} value={product}>
-                      {product}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            {selectedProduct && (
-              <div className="p-3 bg-blue-50 rounded-xl">
-                <p className="text-sm font-medium text-blue-800">Selected: {selectedProduct}</p>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Product Requirements Section */}
+      <Card className="rounded-2xl shadow-lg">
+        <CardHeader>
+          <CardTitle>Product Requirements</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <Label>Select Product</Label>
+          <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+            <SelectTrigger className="rounded-xl h-12 bg-white text-black">
+              <SelectValue placeholder="Choose a product" />
+            </SelectTrigger>
+            <SelectContent>
+              {leadData.products.map(product => (
+                <SelectItem key={product.Id} value={product.Name}>
+                  {product.Name}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
 
-        {/* Photo Capture */}
-        <Card className="rounded-2xl shadow-lg">
-          <CardHeader>
-            <CardTitle>Capture Photos</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <Button 
-              onClick={() => setShowCamera(true)}
-              className="w-full bg-blue-500 hover:bg-blue-600 rounded-xl h-12"
-            >
-              📷 Click Photo
-            </Button>
-            
-            {capturedPhotos.length > 0 && (
-              <div className="space-y-2">
-                <p className="text-sm font-medium text-gray-700">Captured Photos:</p>
-                <div className="grid grid-cols-2 gap-2">
-                  {capturedPhotos.map((photo, index) => (
-                    <img
-                      key={index}
-                      src={photo}
-                      alt={`Captured photo ${index + 1}`}
-                      className="w-full h-32 object-cover rounded-lg border"
-                    />
-                  ))}
-                </div>
-              </div>
-            )}
-          </CardContent>
-        </Card>
+          {selectedProduct && (
+            <div className="grid grid-cols-2 gap-4 mt-4">
+              <input
+                type="text"
+                placeholder="Length"
+                value={productLength}
+                onChange={(e) => setProductLength(e.target.value)}
+                className="border p-2 rounded-xl"
+              />
+              <input
+                type="text"
+                placeholder="Breadth"
+                value={productBreadth}
+                onChange={(e) => setProductBreadth(e.target.value)}
+                className="border p-2 rounded-xl"
+              />
+              <input
+                type="text"
+                placeholder="Height"
+                value={productHeight}
+                onChange={(e) => setProductHeight(e.target.value)}
+                className="border p-2 rounded-xl"
+              />
+              <input
+                type="number"
+                placeholder="Quantity"
+                value={productQuantity}
+                onChange={(e) => setProductQuantity(e.target.value)}
+                className="border p-2 rounded-xl"
+              />
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
         {/* Existing Notes */}
         <Card className="rounded-2xl shadow-lg">
@@ -249,42 +401,63 @@ const LeadDetail = () => {
           </CardContent>
         </Card>
 
+        {/* Photo Capture */}
+        <Card className="rounded-2xl shadow-lg">
+          <CardHeader>
+            <CardTitle>Capture Photos</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Button
+              onClick={() => setShowCamera(true)}
+              className="w-full bg-blue-500 hover:bg-blue-600 rounded-xl h-12"
+            >
+              📷 Click Photo
+            </Button>
+            {capturedPhotos.length > 0 && (
+              <div className="grid grid-cols-2 gap-2">
+                {capturedPhotos.map((photo, idx) => (
+                  <img
+                    key={idx}
+                    src={photo}
+                    alt={`Photo ${idx + 1}`}
+                    className="rounded-lg h-32 object-cover border"
+                  />
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+
         {/* Add Notes */}
         <Card className="rounded-2xl shadow-lg">
           <CardHeader>
             <CardTitle>Add Notes</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
-            <div>
-              <Label htmlFor="notes">Notes</Label>
-              <Textarea
-                id="notes"
-                placeholder="Add your notes here..."
-                value={notes}
-                onChange={(e) => setNotes(e.target.value)}
-                rows={4}
-                className="rounded-xl"
-              />
-            </div>
-            
-            <Button 
+            <Label htmlFor="notes">Notes</Label>
+            <Textarea
+              id="notes"
+              placeholder="Add your notes here..."
+              value={notes}
+              onChange={e => setNotes(e.target.value)}
+              rows={4}
+              className="rounded-xl"
+            />
+            <Button
               onClick={handleSaveNotes}
               className="w-full bg-blue-500 hover:bg-blue-600 rounded-xl h-12"
               disabled={!notes.trim()}
             >
-              Save Notes
+              Submit
             </Button>
           </CardContent>
         </Card>
+
+
       </div>
 
-      {/* Camera Component */}
-      {showCamera && (
-        <CameraCapture
-          onPhotoCapture={handlePhotoCapture}
-          onClose={() => setShowCamera(false)}
-        />
-      )}
+      {showCamera && <CameraCapture onPhotoCapture={handlePhotoCapture} onClose={() => setShowCamera(false)} />}
     </div>
   );
 };
