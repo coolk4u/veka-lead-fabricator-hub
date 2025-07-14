@@ -365,14 +365,14 @@ const LeadDetail = () => {
               />
               <input
                 type="text"
-                placeholder="Breadth"
+                placeholder="Width"
                 value={productBreadth}
                 onChange={(e) => setProductBreadth(e.target.value)}
                 className="border p-2 rounded-xl"
               />
               <input
                 type="text"
-                placeholder="Height"
+                placeholder="Thickness"
                 value={productHeight}
                 onChange={(e) => setProductHeight(e.target.value)}
                 className="border p-2 rounded-xl"
