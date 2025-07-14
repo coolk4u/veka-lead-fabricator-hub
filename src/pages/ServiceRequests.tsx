@@ -1,101 +1,149 @@
-
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
+import axios from 'axios';
+import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
-import { useNavigate } from 'react-router-dom';
 import { ChevronLeft, Calendar as CalendarIcon } from 'lucide-react';
-import { format } from 'date-fns';
+import { format, parseISO } from 'date-fns';
+
+interface ServiceRequest {
+  id: string;
+  customerName: string;
+  address: string;
+  issue: string;
+  priority: string;
+  status: string;
+  date: string;
+  assignedTime: string;
+}
 
 const ServiceRequests = () => {
   const navigate = useNavigate();
+  const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [showCalendar, setShowCalendar] = useState(false);
+  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  const serviceRequests = [
-    {
-      id: 'SR-001',
-      customerName: 'Rajesh Kumar',
-      address: 'Plot 45, Banjara Hills, Hyderabad - 500034',
-      issue: 'Window handle broken',
-      priority: 'high',
-      status: 'open',
-      date: '2024-01-15',
-      assignedTime: '10:00 AM'
-    },
-    {
-      id: 'SR-002',
-      customerName: 'Priya Sharma',
-      address: '205, Jubilee Hills, Road No. 36, Hyderabad - 500033',
-      issue: 'Door lock mechanism issue',
-      priority: 'medium',
-      status: 'in-progress',
-      date: '2024-01-15',
-      assignedTime: '2:00 PM'
-    },
-    {
-      id: 'SR-003',
-      customerName: 'Venkat Rao',
-      address: '12-3-456, Begumpet, Hyderabad - 500016',
-      issue: 'Glass panel replacement',
-      priority: 'low',
-      status: 'open',
-      date: '2024-01-16',
-      assignedTime: '11:00 AM'
-    },
-    {
-      id: 'SR-004',
-      customerName: 'Sanjay Gupta',
-      address: '78, Kukatpally Housing Board, Hyderabad - 500072',
-      issue: 'Weather strip replacement',
-      priority: 'medium',
-      status: 'completed',
-      date: '2024-01-14',
-      assignedTime: '9:00 AM'
-    },
-    {
-      id: 'SR-005',
-      customerName: 'Lakshmi Devi',
-      address: '15-8-647, Malakpet, Hyderabad - 500036',
-      issue: 'Window alignment issue',
-      priority: 'high',
-      status: 'open',
-      date: '2024-01-17',
-      assignedTime: '3:00 PM'
-    },
-    {
-      id: 'SR-006',
-      customerName: 'Anil Reddy',
-      address: '23-4-89, Secunderabad, Hyderabad - 500003',
-      issue: 'Door closer adjustment',
-      priority: 'low',
-      status: 'in-progress',
-      date: '2024-01-16',
-      assignedTime: '1:00 PM'
+  // Fetch Salesforce access token automatically
+  const getAccessToken = async () => {
+    const tokenUrl = 'https://gtmdataai-dev-ed.develop.my.salesforce.com/services/oauth2/token';
+    const clientId = '3MVG9OGq41FnYVsFObrvP_I4DU.xo6cQ3wP75Sf7rxOPMtz0Ofj5RIDyM83GlmVkGFbs_0aLp3hlj51c8GQsq';
+    const clientSecret = 'A9699851D548F0C076BB6EB07C35FEE1822752CF5B2CC7F0C002DC4ED9466492';
+
+    const params = new URLSearchParams();
+    params.append('grant_type', 'client_credentials');
+    params.append('client_id', clientId);
+    params.append('client_secret', clientSecret);
+
+    try {
+      const response = await axios.post(tokenUrl, params, {
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      });
+      setAccessToken(response.data.access_token);
+      console.log('✅ Access Token fetched:', response.data.access_token);
+    } catch (err) {
+      console.error('❌ Error fetching access token:', err);
     }
-  ];
+  };
 
-  const filteredRequests = serviceRequests.filter(request => {
+  // Call access token fetcher on mount
+  useEffect(() => {
+    getAccessToken();
+  }, []);
+
+  // Fetch service request data once token is available
+  useEffect(() => {
+    if (!accessToken) return;
+
+    const fetchData = async () => {
+      try {
+        const queryUrl =
+          "https://gtmdataai-dev-ed.develop.my.salesforce.com/services/data/v62.0/query?q=" +
+          "SELECT+Id,Contact.Name,Contact.Phone,CaseNumber,Priority,CreatedDate,Fabricator_Name__c,Reason," +
+          "Account.BillingStreet,Account.BillingCity,Account.BillingState,Account.BillingPostalCode,Account.BillingCountry+" +
+          "FROM+Case+WHERE+Fabricator_Name__c='Rajesh Kumar'";
+
+        const response = await axios.get(queryUrl, {
+          headers: {
+            Authorization: `Bearer ${accessToken}`,
+            'Content-Type': 'application/json',
+          },
+        });
+
+        const records = response.data.records;
+
+        interface SalesforceCaseRecord {
+          CaseNumber: string;
+          Fabricator_Name__c?: string;
+          Reason?: string;
+          Priority?: string;
+          CreatedDate: string;
+          Account?: {
+            BillingStreet?: string;
+            BillingCity?: string;
+            BillingState?: string;
+            BillingPostalCode?: string;
+            BillingCountry?: string;
+          };
+        }
+
+        const formattedData: ServiceRequest[] = records.map((record: SalesforceCaseRecord) => {
+          const createdDate = parseISO(record.CreatedDate);
+          return {
+            id: record.CaseNumber,
+            customerName: record.Fabricator_Name__c || 'N/A',
+            address: `${record.Account?.BillingStreet || ''}, ${record.Account?.BillingCity || ''}, ${record.Account?.BillingState || ''}, ${record.Account?.BillingPostalCode || ''}, ${record.Account?.BillingCountry || ''}`,
+            issue: record.Reason || 'General Issue',
+            priority: record.Priority?.toLowerCase() || 'low',
+            status: record.Priority?.toLowerCase() === 'high'
+              ? 'open'
+              : record.Priority?.toLowerCase() === 'medium'
+              ? 'in-progress'
+              : 'completed',
+            date: format(createdDate, 'yyyy-MM-dd'),
+            assignedTime: format(createdDate, 'p'),
+          };
+        });
+
+        setServiceRequests(formattedData);
+      } catch (error) {
+        console.error('❌ Error fetching service requests:', error);
+      }
+    };
+
+    fetchData();
+  }, [accessToken]);
+
+  const filteredRequests = serviceRequests.filter((request) => {
     if (!selectedDate) return true;
     return request.date === format(selectedDate, 'yyyy-MM-dd');
   });
 
   const getStatusColor = (status: string) => {
     switch (status) {
-      case 'open': return 'bg-red-500 text-white';
-      case 'in-progress': return 'bg-blue-500 text-white';
-      case 'completed': return 'bg-green-500 text-white';
-      default: return 'bg-gray-100 text-gray-800';
+      case 'open':
+        return 'bg-red-500 text-white';
+      case 'in-progress':
+        return 'bg-blue-500 text-white';
+      case 'completed':
+        return 'bg-green-500 text-white';
+      default:
+        return 'bg-gray-100 text-gray-800';
     }
   };
 
   const getPriorityColor = (priority: string) => {
     switch (priority) {
-      case 'high': return 'bg-red-500';
-      case 'medium': return 'bg-yellow-500';
-      case 'low': return 'bg-green-500';
-      default: return 'bg-gray-500';
+      case 'high':
+        return 'bg-red-500';
+      case 'medium':
+        return 'bg-yellow-500';
+      case 'low':
+        return 'bg-green-500';
+      default:
+        return 'bg-gray-500';
     }
   };
 
@@ -104,8 +152,8 @@ const ServiceRequests = () => {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm shadow-sm p-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <Button 
-            variant="ghost" 
+          <Button
+            variant="ghost"
             size="icon"
             onClick={() => navigate('/dashboard')}
             className="rounded-full"
@@ -130,7 +178,7 @@ const ServiceRequests = () => {
             <CalendarIcon className="w-4 h-4 mr-2" />
             {selectedDate ? format(selectedDate, 'PPP') : 'All requests - Select date to filter'}
           </Button>
-          
+
           {showCalendar && (
             <Card className="mt-2 p-4 bg-white/90 backdrop-blur-sm rounded-2xl">
               <Calendar
@@ -143,9 +191,9 @@ const ServiceRequests = () => {
                 className="rounded-md border-0"
               />
               <div className="mt-2 flex gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm" 
+                <Button
+                  variant="outline"
+                  size="sm"
                   onClick={() => {
                     setSelectedDate(undefined);
                     setShowCalendar(false);
@@ -158,11 +206,11 @@ const ServiceRequests = () => {
           )}
         </div>
 
-        {/* Service Requests List */}
+        {/* Requests List */}
         <div className="space-y-3">
           {filteredRequests.map((request) => (
-            <Card 
-              key={request.id} 
+            <Card
+              key={request.id}
               className="cursor-pointer hover:shadow-lg transition-shadow rounded-2xl bg-white/70 backdrop-blur-sm"
               onClick={() => navigate(`/service-request/${request.id}`)}
             >
@@ -170,23 +218,33 @@ const ServiceRequests = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-3">
-                      <div className={`w-3 h-3 rounded-full ${getPriorityColor(request.priority)}`}></div>
+                      <div
+                        className={`w-3 h-3 rounded-full ${getPriorityColor(request.priority)}`}
+                      ></div>
                       <span className="font-medium text-gray-600">{request.id}</span>
-                      <span className="text-sm text-gray-500">{request.assignedTime}</span>
+                      <span className="text-sm text-gray-500">
+                        {request.date} {request.assignedTime}
+                      </span>
                     </div>
-                    
-                    <h3 className="font-semibold text-gray-800 mb-2 text-lg">{request.customerName}</h3>
+
+                    <h3 className="font-semibold text-gray-800 mb-2 text-lg">
+                      {request.customerName}
+                    </h3>
                     <p className="text-sm text-gray-600 mb-1">Issue:</p>
                     <p className="text-sm text-red-600 font-medium mb-2">{request.issue}</p>
                     <p className="text-sm text-gray-600 mb-1">Address:</p>
                     <p className="text-sm text-gray-800">{request.address}</p>
                   </div>
-                  
+
                   <div className="flex flex-col items-end gap-2">
-                    <Badge className={`${getStatusColor(request.status)} rounded-full px-3 py-1`}>
-                      {request.status === 'open' ? 'Open' : 
-                       request.status === 'in-progress' ? 'In Progress' : 
-                       'Completed'}
+                    <Badge
+                      className={`${getStatusColor(request.status)} rounded-full px-3 py-1`}
+                    >
+                      {request.status === 'open'
+                        ? 'Open'
+                        : request.status === 'in-progress'
+                        ? 'In Progress'
+                        : 'Completed'}
                     </Badge>
                   </div>
                 </div>
@@ -205,34 +263,46 @@ const ServiceRequests = () => {
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-200">
         <div className="flex justify-around py-2">
-          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/dashboard')}>
+          <Button
+            variant="ghost"
+            className="flex-col h-auto py-2 px-3"
+            onClick={() => navigate('/dashboard')}
+          >
             <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-600 text-xs">🏠</span>
             </div>
             <span className="text-xs text-gray-500">Home</span>
           </Button>
-          
-          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/leads')}>
+
+          <Button
+            variant="ghost"
+            className="flex-col h-auto py-2 px-3"
+            onClick={() => navigate('/leads')}
+          >
             <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-600 text-xs">📋</span>
             </div>
             <span className="text-xs text-gray-500">Leads</span>
           </Button>
-          
-          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/service-requests')}>
+
+          <Button
+            variant="ghost"
+            className="flex-col h-auto py-2 px-3"
+            onClick={() => navigate('/service-requests')}
+          >
             <div className="w-6 h-6 mb-1 bg-blue-500 rounded-lg flex items-center justify-center">
               <span className="text-white text-xs">🔧</span>
             </div>
             <span className="text-xs text-blue-500 font-medium">Service</span>
           </Button>
-          
+
           <Button variant="ghost" className="flex-col h-auto py-2 px-3">
             <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-600 text-xs">📊</span>
             </div>
             <span className="text-xs text-gray-500">Reports</span>
           </Button>
-          
+
           <Button variant="ghost" className="flex-col h-auto py-2 px-3">
             <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-600 text-xs">☰</span>
