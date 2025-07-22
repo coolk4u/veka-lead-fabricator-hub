@@ -10,7 +10,7 @@ import { format, parseISO } from 'date-fns';
 
 interface ServiceRequest {
   id: string;
-  customerName: string;
+  contactName: string;
   address: string;
   issue: string;
   priority: string;
@@ -26,7 +26,6 @@ const ServiceRequests = () => {
   const [showCalendar, setShowCalendar] = useState(false);
   const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  // Fetch Salesforce access token automatically
   const getAccessToken = async () => {
     const tokenUrl = 'https://gtmdataai-dev-ed.develop.my.salesforce.com/services/oauth2/token';
     const clientId = '3MVG9OGq41FnYVsFObrvP_I4DU.xo6cQ3wP75Sf7rxOPMtz0Ofj5RIDyM83GlmVkGFbs_0aLp3hlj51c8GQsq';
@@ -42,18 +41,15 @@ const ServiceRequests = () => {
         headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
       });
       setAccessToken(response.data.access_token);
-      console.log('✅ Access Token fetched:', response.data.access_token);
     } catch (err) {
       console.error('❌ Error fetching access token:', err);
     }
   };
 
-  // Call access token fetcher on mount
   useEffect(() => {
     getAccessToken();
   }, []);
 
-  // Fetch service request data once token is available
   useEffect(() => {
     if (!accessToken) return;
 
@@ -61,9 +57,9 @@ const ServiceRequests = () => {
       try {
         const queryUrl =
           "https://gtmdataai-dev-ed.develop.my.salesforce.com/services/data/v62.0/query?q=" +
-          "SELECT+Id,Contact.Name,Contact.Phone,CaseNumber,Priority,CreatedDate,Fabricator_Name__c,Reason," +
+          "SELECT+Id,Contact.Name,Contact.Phone,CaseNumber,Priority,CreatedDate,Reason," +
           "Account.BillingStreet,Account.BillingCity,Account.BillingState,Account.BillingPostalCode,Account.BillingCountry+" +
-          "FROM+Case+WHERE+Fabricator_Name__c='Rajesh Kumar'";
+          "FROM+Case+WHERE+Contact.Name+!=+NULL";
 
         const response = await axios.get(queryUrl, {
           headers: {
@@ -74,34 +70,20 @@ const ServiceRequests = () => {
 
         const records = response.data.records;
 
-        interface SalesforceCaseRecord {
-          CaseNumber: string;
-          Fabricator_Name__c?: string;
-          Reason?: string;
-          Priority?: string;
-          CreatedDate: string;
-          Account?: {
-            BillingStreet?: string;
-            BillingCity?: string;
-            BillingState?: string;
-            BillingPostalCode?: string;
-            BillingCountry?: string;
-          };
-        }
-
-        const formattedData: ServiceRequest[] = records.map((record: SalesforceCaseRecord) => {
+        const formattedData: ServiceRequest[] = records.map((record: any) => {
           const createdDate = parseISO(record.CreatedDate);
           return {
             id: record.CaseNumber,
-            customerName: record.Fabricator_Name__c || 'N/A',
+            contactName: record.Contact?.Name || 'No Contact',
             address: `${record.Account?.BillingStreet || ''}, ${record.Account?.BillingCity || ''}, ${record.Account?.BillingState || ''}, ${record.Account?.BillingPostalCode || ''}, ${record.Account?.BillingCountry || ''}`,
             issue: record.Reason || 'General Issue',
             priority: record.Priority?.toLowerCase() || 'low',
-            status: record.Priority?.toLowerCase() === 'high'
-              ? 'open'
-              : record.Priority?.toLowerCase() === 'medium'
-              ? 'in-progress'
-              : 'completed',
+            status:
+              record.Priority?.toLowerCase() === 'high'
+                ? 'open'
+                : record.Priority?.toLowerCase() === 'medium'
+                ? 'in-progress'
+                : 'completed',
             date: format(createdDate, 'yyyy-MM-dd'),
             assignedTime: format(createdDate, 'p'),
           };
@@ -152,12 +134,7 @@ const ServiceRequests = () => {
       {/* Header */}
       <div className="bg-white/80 backdrop-blur-sm shadow-sm p-4 flex justify-between items-center">
         <div className="flex items-center gap-4">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate('/dashboard')}
-            className="rounded-full"
-          >
+          <Button variant="ghost" size="icon" onClick={() => navigate('/dashboard')} className="rounded-full">
             <ChevronLeft className="w-5 h-5" />
           </Button>
           <div>
@@ -170,11 +147,7 @@ const ServiceRequests = () => {
       <div className="p-4">
         {/* Calendar Filter */}
         <div className="mb-4">
-          <Button
-            variant="outline"
-            onClick={() => setShowCalendar(!showCalendar)}
-            className="w-full justify-start rounded-xl h-12 bg-white/70"
-          >
+          <Button variant="outline" onClick={() => setShowCalendar(!showCalendar)} className="w-full justify-start rounded-xl h-12 bg-white/70">
             <CalendarIcon className="w-4 h-4 mr-2" />
             {selectedDate ? format(selectedDate, 'PPP') : 'All requests - Select date to filter'}
           </Button>
@@ -191,14 +164,10 @@ const ServiceRequests = () => {
                 className="rounded-md border-0"
               />
               <div className="mt-2 flex gap-2">
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={() => {
-                    setSelectedDate(undefined);
-                    setShowCalendar(false);
-                  }}
-                >
+                <Button variant="outline" size="sm" onClick={() => {
+                  setSelectedDate(undefined);
+                  setShowCalendar(false);
+                }}>
                   Clear Filter
                 </Button>
               </div>
@@ -218,18 +187,12 @@ const ServiceRequests = () => {
                 <div className="flex items-start justify-between">
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-3">
-                      <div
-                        className={`w-3 h-3 rounded-full ${getPriorityColor(request.priority)}`}
-                      ></div>
+                      <div className={`w-3 h-3 rounded-full ${getPriorityColor(request.priority)}`} />
                       <span className="font-medium text-gray-600">{request.id}</span>
-                      <span className="text-sm text-gray-500">
-                        {request.date} {request.assignedTime}
-                      </span>
+                      <span className="text-sm text-gray-500">{request.date} {request.assignedTime}</span>
                     </div>
 
-                    <h3 className="font-semibold text-gray-800 mb-2 text-lg">
-                      {request.customerName}
-                    </h3>
+                    <h3 className="font-semibold text-gray-800 mb-2 text-lg">{request.contactName}</h3>
                     <p className="text-sm text-gray-600 mb-1">Issue:</p>
                     <p className="text-sm text-red-600 font-medium mb-2">{request.issue}</p>
                     <p className="text-sm text-gray-600 mb-1">Address:</p>
@@ -237,14 +200,8 @@ const ServiceRequests = () => {
                   </div>
 
                   <div className="flex flex-col items-end gap-2">
-                    <Badge
-                      className={`${getStatusColor(request.status)} rounded-full px-3 py-1`}
-                    >
-                      {request.status === 'open'
-                        ? 'Open'
-                        : request.status === 'in-progress'
-                        ? 'In Progress'
-                        : 'Completed'}
+                    <Badge className={`${getStatusColor(request.status)} rounded-full px-3 py-1`}>
+                      {request.status === 'open' ? 'Open' : request.status === 'in-progress' ? 'In Progress' : 'Completed'}
                     </Badge>
                   </div>
                 </div>
@@ -263,46 +220,30 @@ const ServiceRequests = () => {
       {/* Bottom Navigation */}
       <div className="fixed bottom-0 left-0 right-0 bg-white/90 backdrop-blur-sm border-t border-gray-200">
         <div className="flex justify-around py-2">
-          <Button
-            variant="ghost"
-            className="flex-col h-auto py-2 px-3"
-            onClick={() => navigate('/dashboard')}
-          >
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/dashboard')}>
             <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-600 text-xs">🏠</span>
             </div>
             <span className="text-xs text-gray-500">Home</span>
           </Button>
-
-          <Button
-            variant="ghost"
-            className="flex-col h-auto py-2 px-3"
-            onClick={() => navigate('/leads')}
-          >
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/leads')}>
             <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-600 text-xs">📋</span>
             </div>
             <span className="text-xs text-gray-500">Leads</span>
           </Button>
-
-          <Button
-            variant="ghost"
-            className="flex-col h-auto py-2 px-3"
-            onClick={() => navigate('/service-requests')}
-          >
+          <Button variant="ghost" className="flex-col h-auto py-2 px-3" onClick={() => navigate('/service-requests')}>
             <div className="w-6 h-6 mb-1 bg-blue-500 rounded-lg flex items-center justify-center">
               <span className="text-white text-xs">🔧</span>
             </div>
             <span className="text-xs text-blue-500 font-medium">Service</span>
           </Button>
-
           <Button variant="ghost" className="flex-col h-auto py-2 px-3">
             <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-600 text-xs">📊</span>
             </div>
             <span className="text-xs text-gray-500">Reports</span>
           </Button>
-
           <Button variant="ghost" className="flex-col h-auto py-2 px-3">
             <div className="w-6 h-6 mb-1 bg-gray-200 rounded-lg flex items-center justify-center">
               <span className="text-gray-600 text-xs">☰</span>
