@@ -56,10 +56,7 @@ const ServiceRequests = () => {
     const fetchData = async () => {
       try {
         const queryUrl =
-          "https://gtmdataai-dev-ed.develop.my.salesforce.com/services/data/v62.0/query?q=" +
-          "SELECT+Id,Contact.Name,Contact.Phone,CaseNumber,Priority,CreatedDate,Reason," +
-          "Account.BillingStreet,Account.BillingCity,Account.BillingState,Account.BillingPostalCode,Account.BillingCountry+" +
-          "FROM+Case+WHERE+Contact.Name+!=+NULL";
+          "https://gtmdataai-dev-ed.develop.my.salesforce.com/services/data/v62.0/query?q=SELECT+Id,Contact.Name,Contact.Phone,CaseNumber,Priority,CreatedDate,Reason,Account.BillingStreet,Account.BillingCity,Account.BillingState,Account.BillingPostalCode,Account.BillingCountry+FROM+Case+WHERE+Contact.Name+!=+NULL+AND+Fabricator_Name__c='Rajesh Kumar'";
 
         const response = await axios.get(queryUrl, {
           headers: {
