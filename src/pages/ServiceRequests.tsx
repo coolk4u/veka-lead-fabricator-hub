@@ -1,12 +1,11 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { useNavigate } from 'react-router-dom';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Calendar } from '@/components/ui/calendar';
 import { ChevronLeft, Calendar as CalendarIcon } from 'lucide-react';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 
 interface ServiceRequest {
   id: string;
@@ -24,76 +23,99 @@ const ServiceRequests = () => {
   const [serviceRequests, setServiceRequests] = useState<ServiceRequest[]>([]);
   const [selectedDate, setSelectedDate] = useState<Date | undefined>();
   const [showCalendar, setShowCalendar] = useState(false);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  const getAccessToken = async () => {
-    const tokenUrl = 'https://gtmdataai-dev-ed.develop.my.salesforce.com/services/oauth2/token';
-    const clientId = '3MVG9OGq41FnYVsFObrvP_I4DU.xo6cQ3wP75Sf7rxOPMtz0Ofj5RIDyM83GlmVkGFbs_0aLp3hlj51c8GQsq';
-    const clientSecret = 'A9699851D548F0C076BB6EB07C35FEE1822752CF5B2CC7F0C002DC4ED9466492';
-
-    const params = new URLSearchParams();
-    params.append('grant_type', 'client_credentials');
-    params.append('client_id', clientId);
-    params.append('client_secret', clientSecret);
-
-    try {
-      const response = await axios.post(tokenUrl, params, {
-        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-      });
-      setAccessToken(response.data.access_token);
-    } catch (err) {
-      console.error('❌ Error fetching access token:', err);
+  // Dummy data in JSON format
+  const dummyData: ServiceRequest[] = [
+    {
+      id: "SR-001",
+      contactName: "John Smith",
+      address: "123 Main St, Springfield, IL, 62704, USA",
+      issue: "Water heater not working",
+      priority: "high",
+      status: "open",
+      date: "2024-01-15",
+      assignedTime: "09:30 AM"
+    },
+    {
+      id: "SR-002",
+      contactName: "Emma Johnson",
+      address: "456 Oak Ave, Rivertown, CA, 90210, USA",
+      issue: "Leaky faucet in kitchen",
+      priority: "medium",
+      status: "in-progress",
+      date: "2024-01-15",
+      assignedTime: "11:15 AM"
+    },
+    {
+      id: "SR-003",
+      contactName: "Robert Chen",
+      address: "789 Pine Rd, Mountain View, TX, 77001, USA",
+      issue: "Install new shower head",
+      priority: "low",
+      status: "completed",
+      date: "2024-01-14",
+      assignedTime: "02:45 PM"
+    },
+    {
+      id: "SR-004",
+      contactName: "Maria Garcia",
+      address: "321 Elm St, Lakeside, FL, 33101, USA",
+      issue: "Clogged bathroom drain",
+      priority: "high",
+      status: "open",
+      date: "2024-01-13",
+      assignedTime: "10:00 AM"
+    },
+    {
+      id: "SR-005",
+      contactName: "David Wilson",
+      address: "654 Birch Blvd, Sunset City, NY, 10001, USA",
+      issue: "Garbage disposal jammed",
+      priority: "medium",
+      status: "in-progress",
+      date: "2024-01-12",
+      assignedTime: "03:30 PM"
+    },
+    {
+      id: "SR-006",
+      contactName: "Sarah Miller",
+      address: "987 Cedar Ln, Greenfield, WA, 98101, USA",
+      issue: "Low water pressure",
+      priority: "low",
+      status: "completed",
+      date: "2024-01-11",
+      assignedTime: "01:15 PM"
+    },
+    {
+      id: "SR-007",
+      contactName: "James Taylor",
+      address: "147 Maple Dr, Hilltop, CO, 80201, USA",
+      issue: "Toilet running continuously",
+      priority: "high",
+      status: "open",
+      date: "2024-01-15",
+      assignedTime: "08:45 AM"
+    },
+    {
+      id: "SR-008",
+      contactName: "Lisa Brown",
+      address: "258 Walnut St, Valleyview, AZ, 85001, USA",
+      issue: "Replace bathroom sink",
+      priority: "medium",
+      status: "in-progress",
+      date: "2024-01-15",
+      assignedTime: "04:20 PM"
     }
-  };
+  ];
 
   useEffect(() => {
-    getAccessToken();
+    // Simulate API call delay
+    const timer = setTimeout(() => {
+      setServiceRequests(dummyData);
+    }, 500);
+
+    return () => clearTimeout(timer);
   }, []);
-
-  useEffect(() => {
-    if (!accessToken) return;
-
-    const fetchData = async () => {
-      try {
-        const queryUrl =
-          "https://gtmdataai-dev-ed.develop.my.salesforce.com/services/data/v62.0/query?q=SELECT+Id,Contact.Name,Contact.Phone,CaseNumber,Priority,CreatedDate,Reason,Account.BillingStreet,Account.BillingCity,Account.BillingState,Account.BillingPostalCode,Account.BillingCountry+FROM+Case+WHERE+Contact.Name+!=+NULL+AND+Fabricator_Name__c='Rajesh Kumar'";
-
-        const response = await axios.get(queryUrl, {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-          },
-        });
-
-        const records = response.data.records;
-
-        const formattedData: ServiceRequest[] = records.map((record: any) => {
-          const createdDate = parseISO(record.CreatedDate);
-          return {
-            id: record.CaseNumber,
-            contactName: record.Contact?.Name || 'No Contact',
-            address: `${record.Account?.BillingStreet || ''}, ${record.Account?.BillingCity || ''}, ${record.Account?.BillingState || ''}, ${record.Account?.BillingPostalCode || ''}, ${record.Account?.BillingCountry || ''}`,
-            issue: record.Reason || 'General Issue',
-            priority: record.Priority?.toLowerCase() || 'low',
-            status:
-              record.Priority?.toLowerCase() === 'high'
-                ? 'open'
-                : record.Priority?.toLowerCase() === 'medium'
-                ? 'in-progress'
-                : 'completed',
-            date: format(createdDate, 'yyyy-MM-dd'),
-            assignedTime: format(createdDate, 'p'),
-          };
-        });
-
-        setServiceRequests(formattedData);
-      } catch (error) {
-        console.error('❌ Error fetching service requests:', error);
-      }
-    };
-
-    fetchData();
-  }, [accessToken]);
 
   const filteredRequests = serviceRequests.filter((request) => {
     if (!selectedDate) return true;
