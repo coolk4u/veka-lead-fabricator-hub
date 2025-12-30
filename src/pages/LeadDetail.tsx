@@ -1,6 +1,5 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import axios from 'axios';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -25,8 +24,8 @@ interface SalesPerson {
 }
 
 interface Product {
-  Id: string;
-  Name: string;
+  id: string;
+  name: string;
 }
 
 interface LeadData {
@@ -44,12 +43,98 @@ interface LeadData {
   products: Product[];
 }
 
+// Dummy data in JSON format
+const DUMMY_LEADS: Record<string, LeadData> = {
+  '1': {
+    id: '1',
+    opportunityName: 'Premium UPVC Windows Installation',
+    customerName: 'Rajesh Sharma',
+    address: 'H.No 12-34, Jubilee Hills, Hyderabad - 500033',
+    phone: '+91 98765 43210',
+    email: 'rajesh.sharma@example.com',
+    date: 'Apr 15, 2024, 10:30 AM',
+    status: 'Field Visit - Sales Rep',
+    priority: 'high',
+    existingNotes: 'Customer interested in premium UPVC windows for their new villa. Looking for noise reduction and thermal insulation features. Budget: ₹5-7 lakhs.',
+    salesPerson: {
+      name: 'Sai Kiran',
+      phone: '+91 87654 32109',
+      email: 'sai.kiran@veka.com',
+      territory: 'Hyderabad Central'
+    },
+    products: [
+      { id: '101', name: 'UPVC Sliding Window' },
+      { id: '102', name: 'UPVC Casement Window' },
+      { id: '103', name: 'UPVC French Window' },
+      { id: '104', name: 'UPVC Tilt & Turn Window' }
+    ]
+  },
+  '2': {
+    id: '2',
+    opportunityName: 'Office Partition Glass Work',
+    customerName: 'Priya Patel',
+    address: 'Tech Park, Hitech City, Hyderabad - 500081',
+    phone: '+91 87654 32198',
+    email: 'priya.patel@techcorp.com',
+    date: 'Apr 14, 2024, 2:15 PM',
+    status: 'Qualification',
+    priority: 'medium',
+    existingNotes: 'Office renovation project. Requires tempered glass partitions for 20 cabins and conference room. Timeline: 4 weeks.',
+    salesPerson: {
+      name: 'Sai Kiran',
+      phone: '+91 87654 32109',
+      email: 'sai.kiran@veka.com',
+      territory: 'Hyderabad Central'
+    },
+    products: [
+      { id: '201', name: 'Tempered Glass Partition' },
+      { id: '202', name: 'Frosted Glass Panel' },
+      { id: '203', name: 'Glass Door with Frame' }
+    ]
+  },
+  '3': {
+    id: '3',
+    opportunityName: 'Residential Balcony Railings',
+    customerName: 'Anil Kumar',
+    address: 'Flat 304, Skyline Apartments, Banjara Hills, Hyderabad - 500034',
+    phone: '+91 76543 21987',
+    email: 'anil.kumar@example.com',
+    date: 'Apr 13, 2024, 11:00 AM',
+    status: 'Prospecting',
+    priority: 'low',
+    existingNotes: 'Looking for SS railings for 3 balconies. Prefer powder coating in black color.',
+    salesPerson: {
+      name: 'Sai Kiran',
+      phone: '+91 87654 32109',
+      email: 'sai.kiran@veka.com',
+      territory: 'Hyderabad Central'
+    },
+    products: [
+      { id: '301', name: 'SS 304 Railings' },
+      { id: '302', name: 'Powder Coated Railings' },
+      { id: '303', name: 'Glass + SS Combination' }
+    ]
+  }
+};
+
+const DUMMY_STATUS_OPTIONS = [
+  'Prospecting',
+  'Qualification',
+  'Field Visit - Sales Rep',
+  'Needs Analysis',
+  'Assigned to Fabricator',
+  'Field Visit - Fabricator',
+  'Proposal/Price Quote',
+  'Negotiation/Review',
+  'Closed Won',
+  'Closed Lost'
+];
+
 const LeadDetail = () => {
   const navigate = useNavigate();
   const { leadId } = useParams();
   const { toast } = useToast();
 
-  const [accessToken, setAccessToken] = useState<string | null>(null);
   const [notes, setNotes] = useState('');
   const [selectedProduct, setSelectedProduct] = useState('');
   const [leadStatus, setLeadStatus] = useState('in-progress');
@@ -61,152 +146,55 @@ const LeadDetail = () => {
   const [productHeight, setProductHeight] = useState('');
   const [productQuantity, setProductQuantity] = useState('');
 
-  // Fetch Salesforce access token
+  // Fetch lead data from dummy data
   useEffect(() => {
-    const fetchAccessToken = async () => {
-      const tokenUrl = 'https://gtmdataai-dev-ed.develop.my.salesforce.com/services/oauth2/token';
-      const clientId = '3MVG9OGq41FnYVsFObrvP_I4DU.xo6cQ3wP75Sf7rxOPMtz0Ofj5RIDyM83GlmVkGFbs_0aLp3hlj51c8GQsq';
-      const clientSecret = 'A9699851D548F0C076BB6EB07C35FEE1822752CF5B2CC7F0C002DC4ED9466492';
+    const fetchLead = () => {
+      if (!leadId) return;
 
-      const params = new URLSearchParams();
-      params.append('grant_type', 'client_credentials');
-      params.append('client_id', clientId);
-      params.append('client_secret', clientSecret);
-
-      try {
-        const response = await axios.post(tokenUrl, params, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        });
-        setAccessToken(response.data.access_token);
-        console.log('🔐 Access Token Fetched:', response.data.access_token);
-      } catch (error) {
-        console.error('❌ Failed to fetch access token:', error);
-      }
-    };
-
-    fetchAccessToken();
-  }, []);
-
-  // Fetch lead data using access token
-  useEffect(() => {
-    const fetchLead = async () => {
-      if (!accessToken || !leadId) return;
-
-      try {
-        const response = await axios.get(
-          `https://gtmdataai-dev-ed.develop.my.salesforce.com/services/data/v62.0/query?q=SELECT+Id,Name,StageName,CreatedDate,Description,Account.BillingStreet,Account.BillingCity,Account.BillingState,Account.BillingPostalCode,(SELECT+Contact.FirstName,Contact.LastName,Contact.Email,Contact.Phone+FROM+OpportunityContactRoles),(SELECT+Id,PricebookEntry.Product2.Name+FROM+OpportunityLineItems)+FROM+Opportunity+WHERE+Id='${leadId}'`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: '*/*',
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        const opp = response.data.records[0];
-        const contact = opp.OpportunityContactRoles?.records?.[0]?.Contact ?? {};
-        const customerName = `${contact.FirstName ?? ''} ${contact.LastName ?? ''}`.trim();
-        const address = `${opp.Account?.BillingStreet ?? ''}, ${opp.Account?.BillingCity ?? ''}, ${opp.Account?.BillingState ?? ''} - ${opp.Account?.BillingPostalCode ?? ''}`;
-        const status = opp.StageName ?? 'unknown';
-        const date = new Date(opp.CreatedDate).toLocaleString('en-IN', {
-          dateStyle: 'medium',
-          timeStyle: 'short'
-        });
-
-        let priority: 'high' | 'medium' | 'low' = 'low';
-        if (status.toLowerCase().includes('closed')) priority = 'high';
-        else if (status.toLowerCase().includes('field') || status.toLowerCase().includes('in')) priority = 'medium';
-
-        type OpportunityLineItem = {
-          Id: string;
-          PricebookEntry?: {
-            Product2?: {
-              Name?: string;
-            };
-          };
-        };
-
-        const products: Product[] =
-          opp.OpportunityLineItems?.records?.map((item: OpportunityLineItem) => ({
-            Id: item.Id,
-            Name: item.PricebookEntry?.Product2?.Name ?? 'Unknown Product'
-          })) ?? [];
-
-        const salesPerson: SalesPerson = {
-          name: 'Sai Kiran',
-          phone: '+91 87654 32109',
-          email: 'sai.kiran@veka.com',
-          territory: 'Hyderabad Central'
-        };
-
-        setLeadData({
-          id: opp.Id,
-          opportunityName: opp.Name,
-          customerName,
-          address,
-          phone: contact.Phone ?? 'N/A',
-          email: contact.Email ?? 'N/A',
-          date,
-          status,
-          priority,
-          existingNotes: opp.Description ?? 'Customer interested in premium UPVC windows...',
-          salesPerson,
-          products
-        });
-
-        setLeadStatus(status);
-      } catch (error) {
-        console.error('Error fetching lead data:', error);
-      }
+      // Simulate API delay
+      setTimeout(() => {
+        const lead = DUMMY_LEADS[leadId];
+        if (lead) {
+          setLeadData(lead);
+          setLeadStatus(lead.status);
+        } else {
+          // Fallback to first lead if ID not found
+          const firstLead = Object.values(DUMMY_LEADS)[0];
+          setLeadData(firstLead);
+          setLeadStatus(firstLead.status);
+        }
+      }, 300); // Small delay to simulate network request
     };
 
     fetchLead();
-  }, [accessToken, leadId]);
+  }, [leadId]);
 
   const handleSaveNotes = async () => {
-    if (!accessToken || !leadData?.id) return;
+    // Simulate API call
+    await new Promise(resolve => setTimeout(resolve, 800));
 
-    try {
-      await axios.post(
-        'https://gtmdataai-dev-ed.develop.my.salesforce.com/services/apexrest/updateVisitNotes',
-        {
-          type: 'opportunity',
-          opportunityId: leadData.id,
-          notes,
-          stageName: "Assign to Fabricator",
-          length: productLength,
-          breadth: productBreadth,
-          height: productHeight,
-          quantity: productQuantity
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json',
-            Accept: '*/*'
-          }
-        }
-      );
-
-      toast({
-        title: 'Opportunity is updated',
-        description: 'Opportunity updated in Salesforce.'
-      });
+    toast({
+      title: 'Success!',
+      description: `Notes saved for ${leadData?.customerName}`
+    });
+    
+    // Navigate back after a short delay
+    setTimeout(() => {
       navigate('/leads');
-    } catch (error) {
-      console.error('Failed to update opportunity:', error);
-      toast({
-        title: 'Error',
-        description: 'Could not update opportunity.'
-      });
-    }
+    }, 500);
   };
-
-
 
   const handleStatusChange = (newStatus: string) => {
     setLeadStatus(newStatus);
+    
+    // Update lead data with new status
+    if (leadData) {
+      setLeadData({
+        ...leadData,
+        status: newStatus
+      });
+    }
+    
     toast({
       title: 'Status updated',
       description: `Lead status changed to ${newStatus}`
@@ -253,7 +241,7 @@ const LeadDetail = () => {
           </Button>
           <div>
             <h1 className="text-xl font-semibold text-gray-800">Lead Details</h1>
-            <p className="text-sm text-gray-500">Last Sync: Just now</p>
+            <p className="text-sm text-gray-500">Lead ID: {leadData.id}</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -313,18 +301,7 @@ const LeadDetail = () => {
                 <SelectValue placeholder="Select status" />
               </SelectTrigger>
               <SelectContent>
-                {[
-                  'Prospecting',
-                  'Qualification',
-                  'Field Visit - Sales Rep',
-                  'Needs Analysis',
-                  'Assigned to Fabricator',
-                  'Field Visit - Fabricator',
-                  'Proposal/Price Quote',
-                  'Negotiation/Review',
-                  'Closed Won',
-                  'Closed Lost'
-                ].map(status => (
+                {DUMMY_STATUS_OPTIONS.map(status => (
                   <SelectItem key={status} value={status}>
                     {status}
                   </SelectItem>
@@ -334,60 +311,60 @@ const LeadDetail = () => {
           </CardContent>
         </Card>
 
-      {/* Product Requirements Section */}
-      <Card className="rounded-2xl shadow-lg">
-        <CardHeader>
-          <CardTitle>Product Requirements</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <Label>Select Product</Label>
-          <Select value={selectedProduct} onValueChange={setSelectedProduct}>
-            <SelectTrigger className="rounded-xl h-12 bg-white text-black">
-              <SelectValue placeholder="Choose a product" />
-            </SelectTrigger>
-            <SelectContent>
-              {leadData.products.map(product => (
-                <SelectItem key={product.Id} value={product.Name}>
-                  {product.Name}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
+        {/* Product Requirements Section */}
+        <Card className="rounded-2xl shadow-lg">
+          <CardHeader>
+            <CardTitle>Product Requirements</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <Label>Select Product</Label>
+            <Select value={selectedProduct} onValueChange={setSelectedProduct}>
+              <SelectTrigger className="rounded-xl h-12 bg-white text-black">
+                <SelectValue placeholder="Choose a product" />
+              </SelectTrigger>
+              <SelectContent>
+                {leadData.products.map(product => (
+                  <SelectItem key={product.id} value={product.name}>
+                    {product.name}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
 
-          {selectedProduct && (
-            <div className="grid grid-cols-2 gap-4 mt-4">
-              <input
-                type="text"
-                placeholder="Length"
-                value={productLength}
-                onChange={(e) => setProductLength(e.target.value)}
-                className="border p-2 rounded-xl"
-              />
-              <input
-                type="text"
-                placeholder="Width"
-                value={productBreadth}
-                onChange={(e) => setProductBreadth(e.target.value)}
-                className="border p-2 rounded-xl"
-              />
-              <input
-                type="text"
-                placeholder="Thickness"
-                value={productHeight}
-                onChange={(e) => setProductHeight(e.target.value)}
-                className="border p-2 rounded-xl"
-              />
-              <input
-                type="number"
-                placeholder="Quantity"
-                value={productQuantity}
-                onChange={(e) => setProductQuantity(e.target.value)}
-                className="border p-2 rounded-xl"
-              />
-            </div>
-          )}
-        </CardContent>
-      </Card>
+            {selectedProduct && (
+              <div className="grid grid-cols-2 gap-4 mt-4">
+                <input
+                  type="text"
+                  placeholder="Length (ft)"
+                  value={productLength}
+                  onChange={(e) => setProductLength(e.target.value)}
+                  className="border p-2 rounded-xl"
+                />
+                <input
+                  type="text"
+                  placeholder="Width (ft)"
+                  value={productBreadth}
+                  onChange={(e) => setProductBreadth(e.target.value)}
+                  className="border p-2 rounded-xl"
+                />
+                <input
+                  type="text"
+                  placeholder="Thickness (mm)"
+                  value={productHeight}
+                  onChange={(e) => setProductHeight(e.target.value)}
+                  className="border p-2 rounded-xl"
+                />
+                <input
+                  type="number"
+                  placeholder="Quantity"
+                  value={productQuantity}
+                  onChange={(e) => setProductQuantity(e.target.value)}
+                  className="border p-2 rounded-xl"
+                />
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Existing Notes */}
         <Card className="rounded-2xl shadow-lg">
@@ -428,7 +405,6 @@ const LeadDetail = () => {
           </CardContent>
         </Card>
 
-
         {/* Add Notes */}
         <Card className="rounded-2xl shadow-lg">
           <CardHeader>
@@ -453,8 +429,6 @@ const LeadDetail = () => {
             </Button>
           </CardContent>
         </Card>
-
-
       </div>
 
       {showCamera && <CameraCapture onPhotoCapture={handlePhotoCapture} onClose={() => setShowCamera(false)} />}
