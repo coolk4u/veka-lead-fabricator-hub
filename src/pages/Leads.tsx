@@ -1,5 +1,4 @@
 import React, { useEffect, useState } from 'react';
-import axios from 'axios';
 import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -7,31 +6,9 @@ import { Input } from '@/components/ui/input';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { ChevronLeft, User, Settings } from 'lucide-react';
 
-// Salesforce Opportunity API shape
-interface OpportunityRecord {
-  Id: string;
-  Name: string;
-  StageName: string;
-  CreatedDate: string;
-  Account?: {
-    BillingStreet?: string;
-    BillingCity?: string;
-    BillingState?: string;
-    BillingPostalCode?: string;
-  };
-  OpportunityContactRoles?: {
-    records?: {
-      Contact?: {
-        FirstName?: string;
-        LastName?: string;
-      };
-    }[];
-  };
-}
-
 // Local Lead model
 interface Lead {
-  id: string; // Opportunity ID (internal use)
+  id: string;
   opportunityName: string;
   customerName: string;
   address: string;
@@ -40,87 +17,80 @@ interface Lead {
   priority: 'high' | 'medium' | 'low';
 }
 
+// Dummy data in JSON format
+const DUMMY_LEADS: Lead[] = [
+  {
+    id: '1',
+    opportunityName: 'Kitchen Renovation Project',
+    customerName: 'John Smith',
+    address: '123 Main St, New York, NY - 10001',
+    date: 'Mar 15, 2024, 10:30 AM',
+    status: 'active',
+    priority: 'high'
+  },
+  {
+    id: '2',
+    opportunityName: 'Office Furniture Supply',
+    customerName: 'Sarah Johnson',
+    address: '456 Oak Ave, Chicago, IL - 60607',
+    date: 'Mar 14, 2024, 2:15 PM',
+    status: 'in-progress',
+    priority: 'medium'
+  },
+  {
+    id: '3',
+    opportunityName: 'Hotel Lobby Furniture',
+    customerName: 'Robert Chen',
+    address: '789 Pine St, San Francisco, CA - 94102',
+    date: 'Mar 13, 2024, 9:45 AM',
+    status: 'completed',
+    priority: 'low'
+  },
+  {
+    id: '4',
+    opportunityName: 'Residential Sofa Set',
+    customerName: 'Maria Garcia',
+    address: '321 Elm St, Miami, FL - 33101',
+    date: 'Mar 12, 2024, 4:20 PM',
+    status: 'active',
+    priority: 'high'
+  },
+  {
+    id: '5',
+    opportunityName: 'Conference Room Setup',
+    customerName: 'David Wilson',
+    address: '654 Birch Rd, Boston, MA - 02108',
+    date: 'Mar 11, 2024, 11:10 AM',
+    status: 'in-progress',
+    priority: 'medium'
+  },
+  {
+    id: '6',
+    opportunityName: 'Restaurant Dining Set',
+    customerName: 'Lisa Thompson',
+    address: '987 Cedar Ln, Seattle, WA - 98101',
+    date: 'Mar 10, 2024, 3:45 PM',
+    status: 'completed',
+    priority: 'low'
+  }
+];
+
 const Leads = () => {
   const navigate = useNavigate();
   const [searchParams, setSearchParams] = useSearchParams();
   const statusFilter = searchParams.get('status');
   const [searchTerm, setSearchTerm] = useState('');
   const [leads, setLeads] = useState<Lead[]>([]);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  // Step 1: Fetch Access Token
+  // Load dummy data
   useEffect(() => {
-    const fetchAccessToken = async () => {
-      const salesforceUrl = 'https://gtmdataai-dev-ed.develop.my.salesforce.com/services/oauth2/token';
-      const clientId = '3MVG9OGq41FnYVsFObrvP_I4DU.xo6cQ3wP75Sf7rxOPMtz0Ofj5RIDyM83GlmVkGFbs_0aLp3hlj51c8GQsq';
-      const clientSecret = 'A9699851D548F0C076BB6EB07C35FEE1822752CF5B2CC7F0C002DC4ED9466492';
-
-      const params = new URLSearchParams();
-      params.append('grant_type', 'client_credentials');
-      params.append('client_id', clientId);
-      params.append('client_secret', clientSecret);
-
-      try {
-        const response = await axios.post(salesforceUrl, params, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
-        });
-        setAccessToken(response.data.access_token);
-        console.log('✅ Access Token:', response.data.access_token);
-      } catch (err) {
-        console.error('❌ Failed to fetch access token:', err);
-      }
-    };
-
-    fetchAccessToken();
+    // Simulate API delay
+    const timer = setTimeout(() => {
+      setLeads(DUMMY_LEADS);
+    }, 300);
+    
+    return () => clearTimeout(timer);
   }, []);
-
-  // Step 2: Fetch Opportunity Data After Token is Available
-  useEffect(() => {
-    if (!accessToken) return;
-
-    const fetchData = async () => {
-      try {
-        const response = await axios.get(
-          "https://gtmdataai-dev-ed.develop.my.salesforce.com/services/data/v62.0/query?q=SELECT+Id,Name,StageName,CreatedDate,Fabricator_Name__c,Length__c,Breadth__c,Depth__c,Quantity__c,LeadSource,Account.Id,Account.Name,Account.BillingStreet,Account.BillingCity,Account.BillingState,Account.BillingPostalCode,Account.BillingCountry,(SELECT+Id,Quantity,UnitPrice,TotalPrice,PricebookEntry.Product2.Name,PricebookEntry.Product2.ProductCode,PricebookEntry.Product2.Description+FROM+OpportunityLineItems),(SELECT+Contact.Id,Contact.FirstName,Contact.LastName+FROM+OpportunityContactRoles)+FROM+Opportunity+WHERE+Fabricator_Name__c='Rajesh Kumar'",
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: '*/*',
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        const transformed: Lead[] = (response.data.records as OpportunityRecord[]).map((opp) => {
-          const contact = opp.OpportunityContactRoles?.records?.[0]?.Contact || {};
-          const customerName = `${contact.FirstName || ''} ${contact.LastName || ''}`.trim();
-          const address = `${opp.Account?.BillingStreet || ''}, ${opp.Account?.BillingCity || ''}, ${opp.Account?.BillingState || ''} - ${opp.Account?.BillingPostalCode || ''}`;
-          const status = opp.StageName || 'unknown';
-          const date = new Date(opp.CreatedDate).toLocaleString('en-IN', { dateStyle: 'medium', timeStyle: 'short' });
-
-          let priority: 'high' | 'medium' | 'low' = 'low';
-          if (status.includes('closed')) priority = 'high';
-          else if (status.includes('in')) priority = 'medium';
-
-          return {
-            id: opp.Id,
-            opportunityName: opp.Name,
-            customerName,
-            address,
-            status,
-            date,
-            priority,
-          };
-        });
-
-        setLeads(transformed);
-      } catch (error: any) {
-        console.error('Error fetching opportunities:', error.response?.data || error.message);
-      }
-    };
-
-    fetchData();
-  }, [accessToken]);
 
   const filteredLeads = leads.filter(lead => {
     const matchesStatus = !statusFilter || lead.status === statusFilter;
@@ -158,6 +128,7 @@ const Leads = () => {
       setSearchParams({});
     }
   };
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-purple-100 via-blue-50 to-green-100 pb-20">
       {/* Header */}
@@ -168,7 +139,7 @@ const Leads = () => {
           </Button>
           <div>
             <h1 className="text-xl font-semibold text-gray-800">Leads ({filteredLeads.length})</h1>
-            <p className="text-sm text-gray-500">Last Sync: Just now</p>
+            <p className="text-sm text-gray-500">Demo Data Loaded</p>
           </div>
         </div>
         <div className="flex gap-3">
@@ -207,7 +178,7 @@ const Leads = () => {
                   <div className="flex-1">
                     <div className="flex items-center gap-2 mb-3">
                       <div className={`w-3 h-3 rounded-full ${getPriorityColor(lead.priority)}`}></div>
-                      <span className="font-medium text-gray-600">{lead.opportunityName}</span> {/* 👈 Name shown here */}
+                      <span className="font-medium text-gray-600">{lead.opportunityName}</span>
                       <span className="text-sm text-gray-500">{lead.date}</span>
                     </div>
                     <h3 className="font-semibold text-gray-800 mb-2 text-lg">{lead.customerName}</h3>
