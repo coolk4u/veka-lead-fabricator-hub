@@ -6,8 +6,7 @@ import { Badge } from '@/components/ui/badge';
 import { useNavigate, useParams } from 'react-router-dom';
 import { ChevronLeft, User, Settings, Check } from 'lucide-react';
 import { useToast } from '@/hooks/use-toast';
-import axios from 'axios';
-import { format, parseISO } from 'date-fns';
+import { format } from 'date-fns';
 
 interface ServiceRequestDetail {
   id: string;
@@ -25,6 +24,55 @@ interface ServiceRequestDetail {
   description: string;
 }
 
+// Dummy data for service requests
+const DUMMY_SERVICE_REQUESTS: ServiceRequestDetail[] = [
+  {
+    id: '1',
+    displayId: 'SR-001',
+    customerName: 'John Smith',
+    address: '123 Main St, New York, NY 10001, USA',
+    phone: '+1 (555) 123-4567',
+    issue: 'HVAC System Failure',
+    priority: 'high',
+    status: 'open',
+    date: '2024-01-15',
+    assignedTime: '10:30 AM',
+    technicianName: 'Rajesh Kumar',
+    technicianId: '8301',
+    description: 'Customer reported complete HVAC system failure. No cooling or heating functions working.'
+  },
+  {
+    id: '2',
+    displayId: 'SR-002',
+    customerName: 'Sarah Johnson',
+    address: '456 Oak Ave, Chicago, IL 60601, USA',
+    phone: '+1 (555) 987-6543',
+    issue: 'Refrigerator Not Cooling',
+    priority: 'medium',
+    status: 'in-progress',
+    date: '2024-01-14',
+    assignedTime: '2:00 PM',
+    technicianName: 'Michael Chen',
+    technicianId: '8302',
+    description: 'Refrigerator running but not maintaining cold temperature. Suspected compressor issue.'
+  },
+  {
+    id: '3',
+    displayId: 'SR-003',
+    customerName: 'Robert Williams',
+    address: '789 Pine Rd, Los Angeles, CA 90001, USA',
+    phone: '+1 (555) 456-7890',
+    issue: 'Washing Machine Leak',
+    priority: 'low',
+    status: 'completed',
+    date: '2024-01-13',
+    assignedTime: '9:00 AM',
+    technicianName: 'David Miller',
+    technicianId: '8303',
+    description: 'Water leakage during spin cycle. Drain hose may be clogged or damaged.'
+  }
+];
+
 const ServiceRequestDetail = () => {
   const navigate = useNavigate();
   const { requestId } = useParams();
@@ -33,90 +81,27 @@ const ServiceRequestDetail = () => {
   const [notes, setNotes] = useState('');
   const [actionTaken, setActionTaken] = useState('');
   const [serviceRequest, setServiceRequest] = useState<ServiceRequestDetail | null>(null);
-  const [accessToken, setAccessToken] = useState<string | null>(null);
 
-  // Step 1: Fetch access token dynamically on mount
+  // Fetch service request details from dummy data
   useEffect(() => {
-    const fetchAccessToken = async () => {
-      const tokenUrl = 'https://gtmdataai-dev-ed.develop.my.salesforce.com/services/oauth2/token';
-      const clientId = '3MVG9OGq41FnYVsFObrvP_I4DU.xo6cQ3wP75Sf7rxOPMtz0Ofj5RIDyM83GlmVkGFbs_0aLp3hlj51c8GQsq';
-      const clientSecret = 'A9699851D548F0C076BB6EB07C35FEE1822752CF5B2CC7F0C002DC4ED9466492';
+    const fetchRequestDetail = () => {
+      if (!requestId) return;
 
-      const params = new URLSearchParams();
-      params.append('grant_type', 'client_credentials');
-      params.append('client_id', clientId);
-      params.append('client_secret', clientSecret);
-
-      try {
-        const response = await axios.post(tokenUrl, params, {
-          headers: { 'Content-Type': 'application/x-www-form-urlencoded' }
-        });
-        setAccessToken(response.data.access_token);
-      } catch (err) {
-        console.error('❌ Error fetching access token:', err);
-        toast({
-          title: "Auth Error",
-          description: "Unable to fetch Salesforce access token.",
-          variant: "destructive"
-        });
-      }
-    };
-
-    fetchAccessToken();
-  }, [toast]);
-
-  // Step 2: Fetch Case details when accessToken & requestId available
-  useEffect(() => {
-    const fetchRequestDetail = async () => {
-      if (!accessToken || !requestId) return;
-
-      try {
-        const response = await axios.get(
-          `https://gtmdataai-dev-ed.develop.my.salesforce.com/services/data/v62.0/query?q=SELECT+Id,CaseNumber,Fabricator_Name__c,Reason,Priority,CreatedDate,Contact.Phone,Account.BillingStreet,Account.BillingCity,Account.BillingState,Account.BillingPostalCode,Account.BillingCountry+FROM+Case+WHERE+CaseNumber='${requestId}'`,
-          {
-            headers: {
-              Authorization: `Bearer ${accessToken}`,
-              Accept: '*/*',
-              'Content-Type': 'application/json',
-            },
-          }
-        );
-
-        const record = response.data.records[0];
-        const createdDate = parseISO(record.CreatedDate);
-
-        const formatted: ServiceRequestDetail = {
-          id: record.Id,
-          displayId: record.CaseNumber,
-          customerName: record.Fabricator_Name__c || 'N/A',
-          phone: record.Contact?.Phone || 'N/A',
-          issue: record.Reason || 'General Issue',
-          priority: record.Priority?.toLowerCase() || 'low',
-          status:
-            record.Priority?.toLowerCase() === 'high'
-              ? 'open'
-              : record.Priority?.toLowerCase() === 'medium'
-              ? 'in-progress'
-              : 'completed',
-          address: `${record.Account?.BillingStreet || ''}, ${record.Account?.BillingCity || ''}, ${record.Account?.BillingState || ''}, ${record.Account?.BillingPostalCode || ''}, ${record.Account?.BillingCountry || ''}`,
-          date: format(createdDate, 'yyyy-MM-dd'),
-          assignedTime: format(createdDate, 'p'),
-          technicianName: 'Rajesh Kumar',
-          technicianId: '8301',
-          description: 'Service issue logged by customer. Please follow up.'
-        };
-
-        setServiceRequest(formatted);
-      } catch (error) {
-        console.error('Failed to fetch service request:', error);
-      }
+      // Simulate API delay
+      setTimeout(() => {
+        // Find the request by displayId or fallback to first one
+        const request = DUMMY_SERVICE_REQUESTS.find(req => 
+          req.displayId === requestId || req.id === requestId
+        ) || DUMMY_SERVICE_REQUESTS[0];
+        
+        setServiceRequest(request);
+      }, 300);
     };
 
     fetchRequestDetail();
-  }, [accessToken, requestId]);
+  }, [requestId]);
 
-  // Step 3: Update case notes using dynamic token
-  const handleMarkComplete = async () => {
+  const handleMarkComplete = () => {
     if (!actionTaken.trim()) {
       toast({
         title: "Action Required",
@@ -126,40 +111,19 @@ const ServiceRequestDetail = () => {
       return;
     }
 
-    try {
-      await axios.post(
-        'https://gtmdataai-dev-ed.develop.my.salesforce.com/services/apexrest/updateVisitNotes',
-        {
-          type: 'case',
-          caseId: serviceRequest?.id,
-          actionTaken,
-          additionalNotes: notes
-        },
-        {
-          headers: {
-            Authorization: `Bearer ${accessToken}`,
-            'Content-Type': 'application/json'
-          }
-        }
-      );
-
+    // Simulate API call
+    setTimeout(() => {
       toast({
         title: "Request Completed",
         description: "Service request has been updated successfully."
       });
 
-      navigate('/service-requests');
-    } catch (error) {
-      console.error('Error updating case:', error);
-      toast({
-        title: "Error",
-        description: "Failed to update service request.",
-        variant: "destructive"
-      });
-    }
+      // Simulate navigation after success
+      setTimeout(() => {
+        navigate('/service-requests');
+      }, 1000);
+    }, 500);
   };
-
-
 
   const getStatusColor = (status: string) => {
     switch (status) {
